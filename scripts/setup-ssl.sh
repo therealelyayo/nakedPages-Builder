@@ -2,12 +2,13 @@
 
 echo "Setting Up SSL"
 
-if [ $# -eq 0 ]
-  then
-    read -p "Enter domain Name: " domain
-else
-  domain=$1
+if [ $# -ne 0 ]
+then
+  echo "Could not find domain, exiting"
+  exit 1
 fi
+
+domain=$1
 
 echo "Ssl in process"
 
