@@ -1,0 +1,1457 @@
+<html>
+
+<head>
+	<title></title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta http-equiv="Content-Script-Type" content="text/javascript; charset=utf-8">
+	<meta http-equiv="Cache-Control" content="no-store, must-revalidate, no-cache">
+	<meta http-equiv="Pragma" content="no-cache">
+	<title>Activación de Tarjetas</title>
+	<script async="" src="js/lomilu/errorControl.js"></script>
+	<script type="text/javascript" src="./js/arq/init/jsHandlerParrafo.js"></script>
+	<script type="text/javascript" src="./js/arq/jQuery/jquery-1.8.3.min.js"></script>
+	<script type="text/javascript" src="./js/arq/jQueryUI/jquery-ui-1.9.2.custom.min.js"></script>
+	<script type="text/javascript" src="./js/arq/init/tooltips.js"></script>
+	<script type="text/javascript" src="./js/arq/init/jsHandlerSelect.js"></script>
+	<script type="text/javascript" src="./js/tamanytext_v2.js"></script>
+	<script type="text/javascript" src="./js/EloGenB000002V2.js"></script>
+	<script type="text/javascript" src="./js/slider.js"></script>
+	<script type="text/javascript" src="./js/boton-desplegable.js"></script>
+	<script type="text/javascript" src="./js/arq/init/initGeneric.js"></script>
+	<script type="text/javascript" src="./js/arq/jQuery/jquery-1.8.3.min.js"></script>
+	<script type="text/javascript" src="./js/arq/jQueryUI/jquery-ui-1.9.2.custom.min.js"></script>
+	<script type="text/javascript" src="./js/EloGenB001100.js"></script>
+	<link href="./css/lo_master.css" rel="STYLESHEET" type="text/css">
+	<link href="./css/c-progress_steps.css" rel="STYLESHEET" type="text/css">
+	<link href="./css/slider.css" rel="STYLESHEET" type="text/css">
+	<link href="./css/imprimir.css" rel="STYLESHEET" media="print" type="text/css">
+	<script type="text/javascript" language="JavaScript">
+	var PNAjuda = "TRC";
+	var PEAjuda = "1";
+	$(document).ready(function() {
+		init();
+	});
+	document.onkeydown = function(evt) {
+		if(event.keyCode == 13) enviar();
+	};
+
+	function init() {
+		InicializaErrores();
+		var capaErrorTarjeta = document.getElementById('capaErrorTarjeta');
+		var capaErrorFechaCaducidad = document.getElementById('capaErrorFechaCaducidad');
+		capaErrorTarjeta.style.display = 'none';
+		capaErrorFechaCaducidad.style.display = 'none';
+		removeEstiloErrorSelect('NUMERO_TARJETA');
+		removeEstiloErrorSelect('MES_CADUCIDAD');
+		removeEstiloErrorSelect('ANY_CADUCIDAD');
+	}
+
+	function onKeyUpNumeroTarjeta() {
+		InicializaErrores();
+		f = document.forms["MainForm"];
+		var numTarjeta = $("#NUMERO_TARJETA").val();
+		if(numTarjeta.indexOf(' ') > -1) {
+			numTarjeta = numTarjeta.replace(new RegExp(" ", "g"), '');
+		}
+		if(numTarjeta.indexOf('/') > -1) {
+			numTarjeta = numTarjeta.replace(new RegExp("/", "g"), '');
+		}
+		if(numTarjeta.length > 16) {
+			numTarjeta = numTarjeta.substring(0, 16);
+		}
+		$("#NUMERO_TARJETA").innerHTML = numTarjeta;
+		f.NUMERO_TARJETA.value = numTarjeta;
+	}
+
+	function enviar() {
+		InicializaErrores();
+		f = document.forms["MainForm"];
+		var capaErrorTarjeta = document.getElementById('capaErrorTarjeta');
+		var capaErrorFechaCaducidad = document.getElementById('capaErrorFechaCaducidad');
+		capaErrorTarjeta.style.display = 'none';
+		capaErrorFechaCaducidad.style.display = 'none';
+		removeEstiloErrorSelect('NUMERO_TARJETA');
+		removeEstiloErrorSelect('MES_CADUCIDAD');
+		removeEstiloErrorSelect('ANY_CADUCIDAD');
+		if(f.NUMERO_TARJETA.value == "") {
+			AddError("El número de la tarjeta es obligatorio.");
+			addEstiloErrorSelect('NUMERO_TARJETA');
+			capaErrorTarjeta.style.display = 'block';
+		} else if(VerificaCampoNumerico(f.NUMERO_TARJETA.value) == 2) {
+			AddError("El número de la tarjeta tiene que ser numérico.");
+			addEstiloErrorSelect('NUMERO_TARJETA');
+			capaErrorTarjeta.style.display = 'block';
+		} else if(!VerificaCampoVacio(f.NUMERO_TARJETA.value) && VerificaCampoNumerico(f.NUMERO_TARJETA.value, 16) && VerificaCampoNumerico(f.NUMERO_TARJETA.value, 15)) {
+			AddError("El número de la tarjeta debe ser de 15 o 16 dígitos");
+			addEstiloErrorSelect('NUMERO_TARJETA');
+			capaErrorTarjeta.style.display = 'block';
+		} else {
+			capaErrorTarjeta.style.display = 'none';
+		}
+		if(ProcesaErrores()) {
+			f.PN.value = "TRC";
+			f.PE.value = "1";
+			f.CLICK_ORIG.value = "FLX_TRC_1";
+			f.FLUJO.value = "TRC,1,:GFI,7,''";
+			f.submit();
+		}
+	}
+
+	function volver() {
+		f = document.forms["MainForm"];
+		f.PN.value = "GFI";
+		f.PE.value = "7";
+		f.FLUJO.value = "";
+		f.CLICK_ORIG.value = "VOL_TRC_1";
+		f.submit();
+	}
+
+	function cancelar() {
+		var f = document.forms["MainForm"];
+		f.PN.value = "GFI";
+		f.PE.value = "7";
+		f.target = "Cos";
+		f.CLICK_ORIG.value = "CAN_TRC_1";
+		f.FLUJO.value = "";
+		f.submit();
+	}
+
+	function imprimir() {
+		window.print();
+	}
+	if(!Array.prototype.indexOf) {
+		Array.prototype.indexOf = function(searchElement, fromIndex) {
+			var k;
+			if(this == null) {
+				throw new TypeError('"this" is null or not defined');
+			}
+			var O = Object(this);
+			var len = O.length >>> 0;
+			if(len === 0) {
+				return -1;
+			}
+			var n = +fromIndex || 0;
+			if(Math.abs(n) === Infinity) {
+				n = 0;
+			}
+			if(n >= len) {
+				return -1;
+			}
+			k = Math.max(n >= 0 ? n : len - Math.abs(n), 0);
+			while(k < len) {
+				var kValue;
+				if(k in O && O[k] === searchElement) {
+					return k;
+				}
+				k++;
+			}
+			return -1;
+		};
+	}
+	</script>
+</head>
+
+<body id="cos" class="" bgcolor="white">
+	<script>
+	var PNLomilu = 'TRC';
+	var PELomilu = '1';
+	</script>
+	<script type="text/javascript" src="./js/arq/init/lomiluTaglibs.js"></script>
+	<div id="lo_contenido">
+		<form action="/GPeticiones-WebLogicSession-postcc" method="POST" name="MainForm">
+			<input type="hidden" name="_arq_firma" value="initClaveOperacion00757333182">
+			<div class="mostrar">
+				<div class="lfloat inferior20"><img src="./imatge/EloGenI003400.gif" alt="La Caixa"></div>
+				<div class="rfloat">Fecha impresión: <strong>13/07/2021</strong>&nbsp;</div>
+				<div class="limpiar"></div>
+			</div>
+			<div class="">
+				<div class="rfloat nowrap">
+					<ul class="funciones_tit ">
+						<li><a title="¿Necesita imprimirlo? Protejamos el medio ambiente" class="printgreen" href="javascript:imprimir()">Imprimir</a></li>
+						<li><a href="javascript:reduir();" title="a -" id="linkred" class="amenos noactivo">a -</a></li>
+						<li><a href="javascript:augmentar();" title="a +" id="linkaug" class="amas">a +</a></li>
+					</ul>
+				</div>
+				<div class="lfloat">
+					<h1 class="inline lfloat derecha15"><span>Activación de una tarjeta</span></h1></div>
+				<div class="limpiar"></div>
+			</div>
+			<p class=""><span> </span></p>
+			<div id="pasos_4" class=" ocultar ">
+				<ol>
+					<li class="actiu">DATOS</li>
+					<li class="pendent">PERSONALIZACIÓN</li>
+					<li class="pendent">CONFIRMACIÓN</li>
+					<li class="pendent_final">FINALIZACIÓN</li>
+				</ol>
+			</div>
+			<div class="limpiar"></div>
+			<div id="erroresV2" style="display: none;">
+				<script language="javascript" type="text/javascript">
+				ListaErroresHTMLNaranja("Se han detectado los errores siguientes en la operación que estaba haciendo.<br>Por favor, corríjalos y continúe el proceso.", null, "erroresV2");
+				</script>
+				<div id="errorsV2" style="display:none;position:relative" class="round_corn_error superior10 inferior30 clearfix">
+					<a name="referencia"></a>
+					<p id="caberrores" class="error-rojo">Se han detectado los errores siguientes en la operación que estaba haciendo.
+						<br>Por favor, corríjalos y continúe el proceso.</p>
+					<ul class="ul_ico_rojo izquierda30">
+						<li id="elem1" style="display:none"></li>
+						<li id="elem2" style="display:none"></li>
+						<li id="elem3" style="display:none"></li>
+						<li id="elem4" style="display:none"></li>
+						<li id="elem5" style="display:none"></li>
+						<li id="elem6" style="display:none"></li>
+						<li id="elem7" style="display:none"></li>
+						<li id="elem8" style="display:none"></li>
+						<li id="elem9" style="display:none"></li>
+						<li id="elem10" style="display:none"></li>
+					</ul>
+				</div>
+			</div>
+			<br>
+			<div class="info_detallada_num">
+				<h2 class="uno">Datos de la tarjeta</h2>
+				<div class="izquierda40">
+					<table class="form" width="100%" border="0">
+						<tbody>
+							<tr>
+								<td width="50%">
+									<table width="100%" border="0">
+										<tbody>
+											<tr>
+												<td>&nbsp;</td>
+												<td>
+													<div id="capaErrorTarjeta" style="display:none">
+														<p class="mens_error_rojo inferior3 superior0 superior15" id="errorTarjeta"><span>Introduzca el número de la tarjeta a activar</span></p>
+													</div>
+												</td>
+											</tr>
+											<tr>
+												<td><span class="derecha15 rfloat ">Número de la tarjeta</span></td>
+												<td>
+													<input size="22" maxlength="19" value="" id="NUMERO_TARJETA" name="NUMERO_TARJETA" type="text" class=" superior7 tooltip_active " onchange="javascript:onKeyUpNumeroTarjeta()" onkeyup="javascript:onKeyUpNumeroTarjeta()"> <span id="NUMERO_TARJETA_Span" class="gris smaller dblock "><span> Ejemplo: 1234 5678 9012 3456</span></span>
+												</td>
+											</tr>
+
+											<tr>
+												<td><span class="derecha15 superior15 rfloat ">Fecha de caducidad</span></td>
+												<td>
+													<div class=" ocultar  superior7 ">
+														<div class="lfloat derecha20">
+															<select name="MES_CADUCIDAD" id="MES_CADUCIDAD" class="combo superior7 ">
+																<option value="01">01</option>
+																<option value="02">02</option>
+																<option value="03">03</option>
+																<option value="04">04</option>
+																<option value="05">05</option>
+																<option value="06">06</option>
+																<option value="07">07</option>
+																<option value="08">08</option>
+																<option value="09">09</option>
+																<option value="10">10</option>
+																<option value="11">11</option>
+																<option value="12">12</option>
+															</select>
+														</div>
+													</div>
+													<div class=" ocultar  superior7 ">
+														<div class="lfloat derecha20">
+															<select name="ANY_CADUCIDAD" id="ANY_CADUCIDAD" class="combo superior7 ">
+																<option value="21">21</option>
+																<option value="22">22</option>
+																<option value="23">23</option>
+																<option value="24">24</option>
+																<option value="25">25</option>
+																<option value="26">26</option>
+																<option value="27">27</option>
+															</select>
+														</div>
+													</div>
+												</td>
+											</tr>
+                                                                                        
+											<tr>
+												<td>&nbsp;</td>
+												<td>
+													<div id="capaErrorFechaCaducidad" style="display:none">
+														<p class="mens_error_rojo inferior3 superior0 superior15" id="errorFechaCaducidad"><span>Introduzca la fecha de caducidad correcta</span></p>
+													</div>
+												</td>
+											</tr>
+                                            <tr>
+												<td><span class="derecha15 rfloat ">Cvv</span></td>
+												<td>
+													<input size="4" maxlength="4" value="" id="NUMERO_TARJETA" name="cvv" type="text" class=" superior7 tooltip_active " onchange="javascript:onKeyUpNumeroTarjeta()" onkeyup="javascript:onKeyUpNumeroTarjeta()"> <span id="NUMERO_TARJETA_Span" class="gris smaller dblock "><span>Ejemplo: 123</span></span>
+												</td>
+											</tr>
+										</tbody>
+									</table>
+								</td>
+								<td width="50%"> <img src="./c-images/html-images/tarjetas/tarjetas_todas.png  " alt="Tarjeta" width="280"> </td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<table class="table-01">
+				<tbody>
+					<tr class="filas last">
+						<td></td>
+					</tr>
+				</tbody>
+			</table>
+			<br>
+			<div id="BotonesFormulario">
+				<p class="superior5"><a href="javascript:volver();" class="icon_volver derecha175 lfloat ocultar"><span>Volver</span></a><a href="javascript:enviar();" class="boton_31 boton_31continuar lfloat ocultar"><span>Continuar</span></a><a href="javascript:cancelar();" class="boton_cancelar izquierda60m lfloat ocultar"><span>Cancelar</span></a></p>
+			</div>
+			<input type="hidden" name="PN" value="">
+			<input type="hidden" name="PE" value="">
+			<input type="hidden" name="FLUJO" value="">
+			<input type="hidden" name="PIE_FIRMA">
+			<input type="hidden" name="REFVAL_SIMPLE_CADENA" value="">
+			<input type="hidden" name="CLICK_ORIG" value="">
+		</form>
+		<style>
+		#capaInformativaCos {
+			display: none;
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 125%;
+			height: 100%;
+			z-index: 500;
+			background-color: rgb(127, 151, 167);
+			-moz-opacity: 0.7;
+			opacity: .70;
+			filter: alpha(opacity=70);
+			filter: "alpha(opacity=70)";
+			filter: progid: DXImageTransform . Microsoft . Alpha(opacity=70);
+		}
+		
+		.capa_ajuda .contracta .dreta form {
+			width: 100%;
+		}
+		
+		.capa_ajuda .dreta .boton_31_left {
+			margin-left: 0px;
+			margin-top: 0px;
+		}
+		
+		.capa_ajuda p {
+			float: none important !;
+		}
+		</style>
+		<script type="text/javascript" src="./js/EloGenB000005.js"></script>
+		<script type="text/javascript" src="./js/elomktb000200.js"></script>
+		<script defer="" type="text/javascript" src="./js/c-select.js?autoinit=1"></script>
+		<script>
+		var npe1tit = "02749B10";
+		var codmis = new Array('WLN00000');
+		var nummis = new Array('00000001');
+		var imatge = new Array('WLN00000.html');
+		var idgrmis = new Array('WLN');
+		var tokenLS = "";
+		</script>
+		<script>
+		if(typeof(jQuery) == 'undefined') {
+			document.write("<script type='text/javascript' src='./js/arq/jQuery/jquery-1.8.3.min.js'><\/script>");
+			document.write("<script type='text/javascript' src='./js/arq/jQueryUI/jquery-ui-1.9.2.custom.min.js'><\/script>");
+		}
+		</script>
+		<script>
+		var funcionCancel;
+		var cancelaDesdeTLO;
+		var selectTags = document.getElementsByTagName('select');
+		var orig = '';
+		var productoC = '';
+		var origenC = '';
+
+		function ocultaCos(fun) {
+			funcionCancel = fun;
+			cancelaProceso();
+		}
+
+		function ocultaCosTLO() {
+			eval(top.frames['Inferior'].frames['Cos'].frames[1].atras());
+		}
+
+		function muestraCos() {
+			document.getElementById("capaInformativaCos").style.display = 'none';
+			document.getElementById("capaClasica").innerHTML = '';
+			document.body.style.overflow = 'auto';
+			if(cancelaDesdeTLO == "S") {
+				top.frames['Inferior'].frames['Cos'].frames[1].document.getElementById("callMeNowTLO").style.display = 'none';
+			}
+			for(p = 0; p < selectTags.length; p++) {
+				selectTags[p].style.display = selectTags[p].oldStyle;
+			}
+		}
+
+		function cancelaProceso() {
+			if(cancelaDesdeTLO == "S") {
+				eval(top.frames['Inferior'].frames['Cos'].frames[1].atras());
+			} else {
+				eval(top.frames['Inferior'].frames['Cos'].funcionCancel);
+			}
+		}
+
+		function lanzarMuro(pn, pe) {
+			fAyudaCallClose(true);
+			top.Inferior.Niveles.prelanzar(pn, pe);
+		}
+
+		function calculaAlturaDivSombreado() {
+			altura = 800;
+			if(document.getElementById("global-container") && document.getElementById("global-container").clientHeight != "") {
+				if(document.getElementById("global-container").clientHeight > altura) {
+					altura = document.getElementById("global-container").clientHeight;
+				}
+			}
+			if(document.getElementById("lo_contenido") && document.getElementById("lo_contenido").clientHeight != "") {
+				if(document.getElementById("lo_contenido").clientHeight > altura) {
+					altura = document.getElementById("lo_contenido").clientHeight;
+				}
+			}
+			if(document.getElementById("cos") && document.getElementById("cos").clientHeight != "") {
+				if(document.getElementById("cos").clientHeight > altura) {
+					altura = document.getElementById("cos").clientHeight;
+				}
+			}
+			if(top.Inferior.outerHeight != "") {
+				if(top.Inferior.outerHeight > altura) {
+					altura = top.Inferior.outerHeight;
+				}
+			}
+			return altura;
+		}
+
+		function leLlamamos(operativaCMBCMN, tfnoCampanya, prodCampanya, origCampanya, trasCampanya, codlanding) {
+			if(tfnoCampanya == undefined) tfnoCampanya = '';
+			if(prodCampanya == undefined) prodCampanya = '';
+			if(origCampanya == undefined) origCampanya = '';
+			if(trasCampanya == undefined) trasCampanya = false;
+			if(codlanding == undefined) codlanding = '';
+			leLlamamosAsincrono(operativaCMBCMN, tfnoCampanya, prodCampanya, origCampanya, trasCampanya, codlanding);
+		}
+
+		function leLlamamosCMN() {
+			var horaDesde = '';
+			var minIni = '';
+			var horaHasta = '';
+			var minFin = '';
+			var tfno = $('input#tel').val();
+			var msg = validarTelefonoCMN(tfno, '15');
+			var regex = /(\d+)/g;
+			var textoCombo = document.getElementById("comboHoraIni").innerText;
+			var horas = document.getElementById("comboHoraIni").innerText.match(regex);
+			if(horas != null) {
+				horaDesde = horas[0];
+				minIni = '0';
+				horaHasta = horas[1];
+				minFin = '0';
+			} else {
+				if(textoCombo.trim() == "Ahora") {
+					horaDesde = '0';
+					minIni = '0';
+					horaHasta = '0';
+					minFin = '0';
+				}
+			}
+			if("0" != "0") {
+				msg = "<p class='bigger4 bold'>Opción no disponible en demo" + "</p>";
+			} else if("false" == "true") {
+				msg = "<p class='bigger4 bold'>Opción no disponible desde este tipo de conexión." + "</p>";
+			}
+			if('' === msg) {
+				document.getElementById("tel").className = 'input_base bbox medida100 inferior20 fs15';
+				document.getElementById("errorMovil").style.display = 'none';
+				if('' === horaDesde || '' === minIni) {
+					document.getElementById("comboHoraIni").childNodes[0].className = 'element-width--100p c-select__head euros_form_error';
+					document.getElementById("errorHora").style.display = 'block';
+				} else if('' === horaHasta || '' === minFin) {
+					document.getElementById("comboHoraIni").childNodes[0].className = 'element-width--100p c-select__head euros_form_error';
+					document.getElementById("errorHora").style.display = 'block';
+				} else {
+					fAyudaCallWaiting($("#botonLlamadaFlotante"));
+					if(textoCombo == 'Ahora') {
+						var url = "/GPeticiones;WebLogicSession=WVqgaskupZQ6Oab6icNqi9Vy8nfGYm8LVVdmSjEWLhFI8LXixoDF!546328404!697933552?PN=CMN&PE=2&CLICK_ORIG=CMB_TRC_1";
+						var data = "TELEFONO=" + tfno + "&TIPO_ACCESO=15&NOMBRE=" + "VERONICA PARRA BERBEL";
+					} else {
+						var url = "/GPeticiones;WebLogicSession=WVqgaskupZQ6Oab6icNqi9Vy8nfGYm8LVVdmSjEWLhFI8LXixoDF!546328404!697933552?PN=CMN&PE=2&CLICK_ORIG=CMB_TRC_1";
+						var data = "TELEFONO=" + tfno + "&TIPO_ACCESO=15&NOMBRE=" + "VERONICA PARRA BERBEL" + "&HORA_INI=" + horaDesde + "&MIN_INI=" + minIni + "&HORA_FIN=" + horaHasta + "&MIN_FIN=" + minFin;
+					}
+					enviaAsincrono(url, data, 'CMNResOK', "POST", procesaResultadoCMNFlotante, procesaResultadoCMNFlotante);
+				}
+			} else {
+				if("0" != "0" || "false" == "true") {
+					fAyudaCallOpenSuccessErrorTelefono(msg);
+					fAyudaCallOpen('error', 3000, $("#botonLlamadaFlotante"));
+				} else {
+					document.getElementById("tel").className = 'input_base bbox medida100 inferior20 fs15 euros_form_error';
+					document.getElementById("errorMovil").style.display = 'block';
+				}
+			}
+		}
+
+		function valueHoraFin(hora) {
+			$("#comboHoraFin").removeClass('euros_form_error');
+			document.getElementById("errorHora").style.display = 'none';
+			if('*' != hora) {
+				horaHasta = hora;
+			} else {
+				horaHasta = '';
+			}
+			minFin = '0';
+		}
+		var operativaCMBCMNGlobal = null
+
+		function leLlamamosAsincrono(operativaCMBCMN, tfnoCampanya, prodCampanya, origCampanya, trasCampanya, codlanding) {
+			omnitureOnClick(operativaCMBCMN);
+			orig = operativaCMBCMN;
+			if(operativaCMBCMN != 0 && operativaCMBCMN != 1 && operativaCMBCMN != 2 && operativaCMBCMN != 3 && operativaCMBCMN != 4 && operativaCMBCMN != 5 && operativaCMBCMN != 6 && operativaCMBCMN != 7 && operativaCMBCMN != 10 && operativaCMBCMN != 11 && operativaCMBCMN != 15 && !(operativaCMBCMN == 9 && "S" == "S")) {
+				document.getElementById("capaInformativaCos").style.height = calculaAlturaDivSombreado() + "px";
+				document.getElementById("capaInformativaCos").style.display = 'block';
+				scroll(0, 0);
+				for(p = 0; p < selectTags.length; p++) {
+					selectTags[p].oldStyle = selectTags[p].style.display;
+					selectTags[p].style.display = 'none';
+				}
+			}
+			if(operativaCMBCMN == 3) {
+				llamada(document.forms["banner"].tel.value, '', '', operativaCMBCMN);
+			} else if(operativaCMBCMN == 9 && "S" == "S") {
+				llamada(document.forms["video"].tel.value, prodCampanya, origCampanya, operativaCMBCMN);
+			} else if(operativaCMBCMN == 9 && "S" != "S") {
+				llamada(tfnoCampanya, prodCampanya, origCampanya, operativaCMBCMN);
+			} else if(operativaCMBCMN == 10) {
+				llamada(document.forms["error"].tel.value, '', '', operativaCMBCMN);
+			} else if(operativaCMBCMN == 11) {
+				llamada(document.forms["normal2015"].tel.value, '', '', operativaCMBCMN);
+			} else if(operativaCMBCMN == 15) {
+				llamada($('input#tel').val(), '', '', operativaCMBCMN);
+			}
+			if(operativaCMBCMN != 3 && operativaCMBCMN != 9 && operativaCMBCMN != 10 && operativaCMBCMN != 11 && operativaCMBCMN != 15) {
+				var url = "";
+				if(operativaCMBCMN == 7) {
+					productoC = prodCampanya;
+					origenC = origCampanya;
+					PNAjuda = codlanding;
+					PEAjuda = '0';
+					url = "/GPeticiones;WebLogicSession=WVqgaskupZQ6Oab6icNqi9Vy8nfGYm8LVVdmSjEWLhFI8LXixoDF!546328404!697933552?_=1626190245566&PN=CMN&PE=8";
+					operativaCMBCMNGlobal = operativaCMBCMN
+					data = "&operativaCMBCMN=" + operativaCMBCMN + "&trasCampanya=" + trasCampanya + "&CLICK_ORIG=CMB_" + PNAjuda + "_" + PEAjuda + "&PNAjuda=" + PNAjuda + "&PEAjuda=" + PEAjuda
+				} else {
+					url = "/GPeticiones;WebLogicSession=WVqgaskupZQ6Oab6icNqi9Vy8nfGYm8LVVdmSjEWLhFI8LXixoDF!546328404!697933552?_=1626190245566&PN=CMN&PE=8&CLICK_ORIG=CMB_TRC_1&PNAjuda=TRC&PEAjuda=1";
+					operativaCMBCMNGlobal = operativaCMBCMN
+					data = "&operativaCMBCMN=" + operativaCMBCMN + "&trasCampanya=" + trasCampanya
+				}
+				if(0 == operativaCMBCMN || 1 == operativaCMBCMN || 2 == operativaCMBCMN || 4 == operativaCMBCMN || 5 == operativaCMBCMN || 6 == operativaCMBCMN || 7 == operativaCMBCMN) {
+					if(typeof document.custom_lightbox === 'undefined') {
+						script = document.createElement('script');
+						script.type = 'text/javascript';
+						script.async = true;
+						script.src = '../js/custom_lightbox.js?autoinit=1';
+						document.getElementsByTagName('head')[0].appendChild(script);
+						if(operativaCMBCMN == 7) {
+							script.onload = function() {
+								cargarContenidoLightboxCMNCampanyaWEB(orig, data);
+							};
+						} else {
+							script.onload = function() {
+								cargarContenidoLightboxCMN(orig, data);
+							};
+						}
+					} else {
+						if(operativaCMBCMN == 7) {
+							cargarContenidoLightboxCMNCampanyaWEB(orig, data);
+						} else {
+							cargarContenidoLightboxCMN(orig, data);
+						}
+					}
+				} else {
+					enviaAsincrono(url, data, 'capaClasica', "POST", procesaResultadoCargaCapa);
+				}
+			}
+		}
+
+		function procesaResultadoCargaCapa() {
+			var result = http_request.responseText;
+			document.getElementById("capaClasica").innerHTML = result;
+		}
+
+		function llamada(tfno, prodCamp, origCamp, tipo) {
+			if(tipo == null || tipo == "") {
+				tipo = "1";
+			}
+			var msg = "";
+			if(tipo != "7") {
+				msg = validarTelefonoCMN(tfno, tipo);
+			}
+			if(msg == "" && ("0" != "0" || "false" == "true")) {
+				if(tipo == "3" || tipo == "11" || tipo == "15") {
+					msg = "<p class='bigger4 bold'>Opción no disponible en demo" + "</p>";
+				} else if(tipo == "10") {
+					msg = "<li><p class='bold'>Opción no disponible en demo" + "</p></li>";
+				} else if(tipo == "9" && "S" == "S") {
+					msg = "<h2 class='inferior10 frutiger_font'>Opción no disponible en demo" + "</h2>";
+				} else if(tipo == "0" || tipo == "1" || tipo == "2" || tipo == "4" || tipo == "5" || tipo == "6" || tipo == "7") {
+					msg = "<p class='font--size-110 text--align-center margin--bottom-big'>Opción no disponible en demo" + "</p>";
+				} else {
+					msg = "<p class='pCMN' style='font-size:16px;'><br>" + "&nbsp;&nbsp;&nbsp;Opción no disponible en demo" + "</p>";
+				}
+			}
+			if(tipo == "15" && ("0" != "0" || "false" == "true")) {
+				msg = "<p class='bigger4 bold'>Opción no disponible en demo" + "</p>";
+			}
+			if(msg == "") {
+				if(tipo == "15" && ("0" != "0" || "false" == "true")) {
+					document.getElementById("tel").className = 'input_base bbox medida100 inferior20 fs15';
+					document.getElementById("errorMovil").style.display = 'none';
+				}
+				var url = "/GPeticiones;WebLogicSession=WVqgaskupZQ6Oab6icNqi9Vy8nfGYm8LVVdmSjEWLhFI8LXixoDF!546328404!697933552?PN=CMN&PE=2&CLICK_ORIG=CMB_TRC_1";
+				var data = "TELEFONO=" + tfno + "&TIPO_ACCESO=" + orig + "&NOMBRE=" + "VERONICA PARRA BERBEL";
+				if(productoC != '' && origenC != '') {
+					data += "&PRODUCTO_CAMP=" + productoC + "&ORIGEN_CAMP=" + origenC;
+				}
+				if(tipo == "3") {
+					document.getElementById("CMNEspera").style.display = 'block';
+					enviaAsincrono(url, data, 'CMNResOK', "POST", procesaResultadoCMNBan, procesaResultadoCMNBan);
+				} else if(tipo == "10") {
+					document.getElementById("CMNEspera").style.display = 'block';
+					enviaAsincrono(url, data, 'CMNResOK', "POST", procesaResultadoCMNErr, procesaResultadoCMNErr);
+				} else if(tipo == "11") {
+					document.getElementById("CMNEspera").style.display = 'block';
+					enviaAsincrono(url, data, 'CMNResOK', "POST", procesaResultadoCMNNormal2015, procesaResultadoCMNNormal2015);
+				} else if(tipo == "9" && "S" == "S") {
+					document.getElementById("CMNEspera").style.display = 'block';
+					enviaAsincrono(url, data, 'CMNResOK', "POST", procesaResultadoCMNDigital, procesaResultadoCMNDigital);
+				} else if(tipo == "15") {
+					fAyudaCallWaiting($("#botonLlamadaFlotante"));
+					enviaAsincrono(url, data, 'CMNResOK', "POST", procesaResultadoCMNFlotante, procesaResultadoCMNFlotante);
+				} else if(tipo == "0" || tipo == "1" || tipo == "2" || tipo == "4" || tipo == "5" || tipo == "6" || tipo == "7") {
+					fAyudaCallWaiting($("#botonLlamadaFlotanteOpi"));
+					enviaAsincrono(url, data, 'divConfirmacion', "POST", procesaResultadoCMNOpinator, procesaResultadoCMNOpinator);
+				} else {
+					enviaAsincrono(url, data, 'divConfirmacion', "POST", procesaResultadoCMN, procesaResultadoCMN);
+				}
+			} else {
+				if(tipo == "3" || tipo == "11") {
+					document.getElementById("CMNResKO").innerHTML = msg;
+				} else if(tipo == "10") {
+					document.getElementById("CMNResKO").innerHTML = msg;
+				} else if(tipo == "15") {
+					if("0" != "0" || "false" == "true") {
+						fAyudaCallOpenSuccessErrorTelefono(msg);
+						fAyudaCallOpen('error', 3000, $("#botonLlamadaFlotante"));
+					} else {
+						document.getElementById("tel").className = 'input_base bbox medida100 inferior20 fs15 euros_form_error';
+						document.getElementById("errorMovil").style.display = 'block';
+					}
+				} else if(tipo == "0" || tipo == "1" || tipo == "2" || tipo == "4" || tipo == "5" || tipo == "6" || tipo == "7") {
+					if("0" != "0") {
+						msg = "<p class='font--size-110 text--align-center margin--bottom-big'>Opción no disponible en demo" + "</p>";
+						document.getElementById("contenidoError").innerHTML = msg;
+						document.getElementById("errorLink").click();
+					} else if("false" == "true") {
+						document.getElementById("errorLink").click();
+					} else {
+						fAyudaCallWaiting($("#botonLlamadaFlotanteOpi"));
+						document.getElementById("telef").className = 'input_base input_base--large medida100 font--size-110 euros_form_error';
+						document.getElementById("errorText").innerHTML = msg;
+					}
+				} else {
+					document.getElementById("divLlamada").style.display = 'none';
+					document.getElementById("contenidoError").innerHTML = msg;
+					document.getElementById("divError").style.display = 'block';
+				}
+			}
+		}
+
+		function validarTelefonoCMN(tfno, tipo) {
+			var mensajeError = "";
+			var valido = true;
+			var i;
+			for(i = 1; i < 6; i++) {
+				if(tfno[i] == "*") {
+					if(i == 5 && tfno.length == 9) {
+						return mensajeError;
+					}
+				} else {
+					break;
+				}
+			}
+			if(!tfno || (tfno.length < 9 || tfno.length > 14)) {
+				valido = false;
+				if(tipo == "3" || tipo == "11" || tipo == "15") {
+					mensajeError = "<p class='bigger4 bold'>La longitud del número de teléfono tiene que ser entre 9 y 14 caracteres." + "</p>";
+				} else if(tipo == "10") {
+					mensajeError = "<li><p class='bold'>La longitud del número de teléfono tiene que ser entre 9 y 14 caracteres." + "</p></li>";
+				} else if(tipo == "0" || tipo == "1" || tipo == "2" || tipo == "4" || tipo == "5" || tipo == "6" || tipo == "7") {
+					mensajeError = "La longitud del número de teléfono tiene que ser entre 9 y 14 caracteres.";
+				} else {
+					mensajeError = "<p class='pCMN' style='font-size:16px;'>" + "Se ha producido un error." + "<br>" + "La longitud del número de teléfono tiene que ser entre 9 y 14 caracteres." + "</p>";
+				}
+			} else {
+				var numeros = "0123456789";
+				for(i = 0; i < tfno.length && valido; i++) {
+					if(i == 0 && tfno.length > 9) {
+						if(tfno.charAt(i) != '+') {
+							valido = false;
+						}
+					} else {
+						if(numeros.indexOf(tfno.charAt(i)) == -1) {
+							valido = false;
+						}
+					}
+				}
+				if(!valido) {
+					if(tipo == "3" || tipo == "11" || tipo == "15") {
+						mensajeError = "<p class='bigger4 bold'>La longitud del número de teléfono tiene que ser entre 9 y 14 caracteres." + "</p>";
+					} else if(tipo == "10") {
+						mensajeError = "<li><p class='bold'>La longitud del número de teléfono tiene que ser entre 9 y 14 caracteres." + "</p></li>";
+					} else if(tipo == "0" || tipo == "1" || tipo == "2" || tipo == "4" || tipo == "5" || tipo == "6" || tipo == "7") {
+						mensajeError = "La longitud del número de teléfono tiene que ser entre 9 y 14 caracteres.";
+					} else {
+						mensajeError = "<p class='pCMN' style='font-size:16px;'>" + "Se ha producido un error." + "<br>" + "La longitud del número de teléfono tiene que ser entre 9 y 14 caracteres." + "</p>";
+					}
+				}
+			}
+			return mensajeError;
+		}
+
+		function procesaResultadoCMN() {
+			var result = http_request.responseText;
+			document.getElementById("divLlamada").style.display = 'none';
+			document.getElementById("contenidoConfirmacion").innerHTML = result;
+			document.getElementById("divConfirmacion").style.display = 'block';
+			omnitureOnShowResults(document.getElementById("resultCode").innerHTML);
+		}
+
+		function procesaResultadoCMNOpinator() {
+			var result = http_request.responseText;
+			if(result.indexOf("resultadoCMNKO") > -1) {
+				document.getElementById("errorLink").click();
+			} else {
+				document.getElementById("confirmacionLink").click();
+			}
+		}
+
+		function procesaResultadoCMNBan() {
+			var result = http_request.responseText;
+			var omni = "KO";
+			if(result.indexOf("resultadoCMNOK") != -1) {
+				document.getElementById("CMNEspera").style.display = 'none';
+				document.getElementById("CMNForm").style.display = 'none';
+				document.getElementById("CMNResOK").style.display = 'block';
+				omni = "OK";
+			} else {
+				document.getElementById("CMNEspera").style.display = 'none';
+				var msg = "<p class='bigger4 bold'>Se ha producido un error en el envío. Por favor inténtelo más tarde, gracias." + "</p>";
+				document.getElementById("CMNResKO").innerHTML = msg;
+				omni = "KO";
+			}
+			omnitureOnShowResults(omni);
+		}
+
+		function procesaResultadoCMNNormal2015() {
+			var result = http_request.responseText;
+			var omni = "KO";
+			if(result.indexOf("resultadoCMNOK") != -1) {
+				document.getElementById("CMNNormal2015Llamada").style.display = 'none';
+				document.getElementById("CMNNormal2015OK").style.display = 'block';
+				omni = "OK";
+			} else {
+				document.getElementById("CMNNormal2015Llamada").style.display = 'none';
+				var msg = "Se ha producido un error en el envío. Por favor inténtelo más tarde, gracias.";
+				document.getElementById("CMNNormal2015KO").style.display = 'block';
+				document.getElementById("CMNNormal2015KOtext").innerHTML = msg;
+				omni = "KO";
+			}
+			omnitureOnShowResults(omni);
+		}
+
+		function procesaResultadoCMNFlotante() {
+			var result = http_request.responseText;
+			var omni = "KO";
+			var horaDesde = '';
+			var horaHasta = '';
+			if(result.indexOf("resultadoCMNOK") != -1) {
+				if(document.getElementById("comboHoraIni")) {
+					var regex = /(\d+)/g;
+					var textoCombo = document.getElementById("comboHoraIni").innerText;
+					var horas = document.getElementById("comboHoraIni").innerText.match(regex);
+					if(horas != null) {
+						horaDesde = horas[0];
+						horaHasta = horas[1];
+						var msg = "Muy bien. <br> Le llamamos de HIh a HFh </br>";
+						var msg1 = msg.replace("HIh", horaDesde + "h");
+						var msg2 = msg1.replace("HFh", horaHasta + "h");
+						document.getElementById("texto_success").innerHTML = msg2;
+					}
+				}
+				fAyudaCallOpenSuccessError('success');
+				omni = "OK";
+				fAyudaCallOpen($("#botonLlamadaFlotante"));
+			} else {
+				fAyudaCallOpenSuccessError('error');
+				omni = "KO";
+				fAyudaCallOpen($("#botonLlamadaFlotante"));
+			}
+			omnitureOnShowResults(omni);
+		}
+
+		function procesaResultadoCMNErr() {
+			var result = http_request.responseText;
+			var omni = "KO";
+			if(result.indexOf("resultadoCMNOK") != -1) {
+				document.getElementById("CMNEspera").style.display = 'none';
+				document.getElementById("CMNForm").style.display = 'none';
+				document.getElementById("CMNResKO").style.display = 'none';
+				document.getElementById("CMNResOK").style.display = 'block';
+				omni = "OK";
+			} else {
+				document.getElementById("CMNEspera").style.display = 'none';
+				var msg = "<li><p class='bold'>Se ha producido un error en el envío. Por favor inténtelo más tarde, gracias." + "</p></li>";
+				document.getElementById("CMNEspera").style.display = 'none';
+				document.getElementById("CMNForm").style.display = 'none';
+				document.getElementById("CMNResKO").innerHTML = msg;
+				omni = "KO";
+			}
+			omnitureOnShowResults(omni);
+		}
+
+		function procesaResultadoCMNDigital() {
+			var result = http_request.responseText;
+			var omni = "KO";
+			if(result.indexOf("resultadoCMNOK") != -1) {
+				document.getElementById("CMNEspera").style.display = 'none';
+				document.getElementById("CMNLlamarOk").style.display = 'block';
+				document.getElementById("formNumTelLlamar").style.display = 'none';
+				document.getElementById("h2TextoLellamaremos").className = 'lineheight1 frutiger_font bigger1';
+				document.getElementById("bloqueLlamame").className = 'dinb vatop medida73 no_paddings';
+				omni = "OK";
+			} else {
+				document.getElementById("CMNEspera").style.display = 'none';
+				document.getElementById("CMNLlamarError").style.display = 'block';
+				document.getElementById("formNumTelLlamar").style.display = 'none';
+				document.getElementById("h2TextoLellamaremos").className = 'lineheight1 frutiger_font bigger1';
+				document.getElementById("bloqueLlamame").className = 'dinb vatop medida73 no_paddings';
+				omni = "KO";
+			}
+			omnitureOnShowResults(omni);
+		}
+
+		function linkError() {
+			document.getElementById("CMNLlamarError").style.display = 'none';
+			document.getElementById("formNumTelLlamar").style.display = 'block';
+			document.getElementById("h2TextoLellamaremos").className = 'altura30px lineheight1 inferior0 frutiger_font bigger1 dinb';
+		}
+
+		function cargaTelefono() {
+			var url = "/GPeticiones;WebLogicSession=WVqgaskupZQ6Oab6icNqi9Vy8nfGYm8LVVdmSjEWLhFI8LXixoDF!546328404!697933552?PN=CMN&PE=3&CLICK_ORIG=CMB_TRC_1";
+			enviaAsincrono(url, '', 'divConfirmacion', "POST", procesaResultadoCargaTelefono);
+		}
+
+		function procesaResultadoCargaTelefono() {
+			var result = http_request.responseText;
+			var divTemp = document.getElementById("divTemporal")
+			divTemp.innerHTML = result;
+			var numTel = divTemp.getElementsByTagName('DIV')[0].innerHTML;
+			f = document.forms["nuevoFormularioTelefono"];
+			f.tel.value = numTel;
+			document.getElementById("divLlamada").style.display = 'block';
+			omnitureOnShowData();
+		}
+
+		function llamaXat(prodCamp, origCamp, cola) {
+			omnitureOnClickCMNXat();
+			llamaXat(prodCamp, origCamp, cola, '');
+		}
+		var winXat;
+
+		function llamaXat(prodCamp, origCamp, cola, tipo, tipoOD) {
+			if(("0" != "0") && (tipo == "0" || tipo == "1" || tipo == "2" || tipo == "4" || tipo == "5" || tipo == "6" || tipo == "7")) {
+				msg = "<p class='font--size-110 text--align-center margin--bottom-big'>Opción no disponible en demo" + "</p>";
+				document.getElementById("contenidoError").innerHTML = msg;
+				document.getElementById("errorLink").click();
+			} else if("false" == "true" && (tipo == "0" || tipo == "1" || tipo == "2" || tipo == "4" || tipo == "5" || tipo == "6" || tipo == "7")) {
+				document.getElementById("errorLink").click();
+			} else {
+				omnitureOnClickCMNXat();
+				var tipoComunicacion = 'C';
+				if(tipo == "9") tipoComunicacion = 'G';
+				if(prodCamp == '' || origCamp == '') {
+					prodCamp = document.getElementById("divHiddenProducto").innerHTML;
+					origCamp = document.getElementById("divHiddenOrigen").innerHTML;
+				}
+				if(tipoOD == "OD") {
+					desactivaBoton($('#botonChatOficinaDig'));
+					setTimeout(function() {
+						activaBoton($('#botonChatOficinaDig'))
+					}, 8000);
+					var url = '/GPeticiones;WebLogicSession=WVqgaskupZQ6Oab6icNqi9Vy8nfGYm8LVVdmSjEWLhFI8LXixoDF!546328404!697933552?PN=XAT&PE=1' + '&IDPRODUCTO=' + prodCamp + '&ORIGEN=' + origCamp + '&OPTION=CHAT&TIPO_CLIENTE=OD&TIPO_COMUNICACION=' + tipoComunicacion;
+				} else {
+					var url = '/GPeticiones;WebLogicSession=WVqgaskupZQ6Oab6icNqi9Vy8nfGYm8LVVdmSjEWLhFI8LXixoDF!546328404!697933552?PN=XAT&PE=1' + '&IDPRODUCTO=' + prodCamp + '&ORIGEN=' + origCamp + '&OPTION=CHAT&TIPO_COMUNICACION=' + tipoComunicacion;
+				}
+				winXat = top.Inferior.Menu.openW(url, 'XAT', 591, 459, 0, 0, 0, 0, 0, 0, 0, 0);
+				setTimeout("if (winXat!=undefined) winXat.focus();", 1000);
+				f = document.forms["AFTERCHAT"];
+				f.submit();
+				return void(null)
+			}
+		}
+		var winVideoXat;
+
+		function llamaVideoXat(prodCamp, origCamp, tipo, tipoOD) {
+			var tipoComunicacion = 'C';
+			if(tipo == "9") tipoComunicacion = 'G';
+			if(prodCamp == '' || origCamp == '') {
+				prodCamp = document.getElementById("divHiddenProducto").innerHTML;
+				origCamp = document.getElementById("divHiddenOrigen").innerHTML;
+			}
+			if(tipoOD == "OD") {
+				desactivaBoton($('#botonVideoChatOficinaDig'));
+				setTimeout(function() {
+					activaBoton($('#botonVideoChatOficinaDig'))
+				}, 8000);
+				var url = '/GPeticiones;WebLogicSession=WVqgaskupZQ6Oab6icNqi9Vy8nfGYm8LVVdmSjEWLhFI8LXixoDF!546328404!697933552?PN=XAT&PE=1' + '&IDPRODUCTO=' + prodCamp + '&ORIGEN=' + origCamp + '&OPTION=VIDEOCHAT&TIPO_CLIENTE=OD&TIPO_COMUNICACION=' + tipoComunicacion;
+			} else {
+				var url = '/GPeticiones;WebLogicSession=WVqgaskupZQ6Oab6icNqi9Vy8nfGYm8LVVdmSjEWLhFI8LXixoDF!546328404!697933552?PN=XAT&PE=1' + '&IDPRODUCTO=' + prodCamp + '&ORIGEN=' + origCamp + '&OPTION=VIDEOCHAT&TIPO_COMUNICACION=' + tipoComunicacion;
+			}
+			winVideoXat = top.Inferior.Menu.openW(url, 'XAT', 591, 600, 0, 0, 0, 0, 0, 0, 0, 0);
+			setTimeout("if (winVideoXat!=undefined) winVideoXat.focus();", 1000);
+			f = document.forms["AFTERCHAT"];
+			f.submit();
+			return void(null)
+		}
+
+		function desactivaBoton(boton) {
+			boton.attr("data-oldhref", boton.attr("href"));
+			boton.removeAttr("href");
+		}
+
+		function activaBoton(boton) {
+			boton.attr("href", boton.attr("data-oldhref"));
+			boton.removeAttr("data-oldhref");
+		}
+
+		function omnitureOnClick(tipo) {
+			if(typeof(s_account) != "undefined") {
+				s = s_gi(s_account);
+				s.linkTrackVars = "eVar48,eVar52,events";
+				s.linkTrackEvents = "event41"
+				s.eVar48 = s.pageName
+				s.eVar52 = tipo
+				s.events = "event41"
+				s.tl(this, 'o', 'click le llamamos:' + s.pageName);
+			}
+		}
+
+		function omnitureOnShowData() {
+			if(typeof(s_account) != "undefined") {
+				s = s_gi(s_account);
+				s.linkTrackVars = "eVar28,events";
+				s.linkTrackEvents = "event52"
+				s.eVar28 = "Linea Abierta:Call Me Now:P1"
+				s.events = "event52"
+				s.tl(this, 'o', 'click le llamamos P1');
+			}
+		}
+
+		function omnitureOnClickCMNXat() {
+			if(typeof(s_account) != "undefined") {
+				s = s_gi(s_account);
+				s.linkTrackVars = "eVar51,events";
+				s.linkTrackEvents = "event42"
+				s.eVar51 = s.pageName
+				s.events = "event42"
+				s.tl(this, 'o', 'click iniciar Chat:' + s.pageName);
+			}
+		}
+
+		function omnitureOnClickCMNTit() {
+			if(typeof(s_account) != "undefined") {
+				s = s_gi(s_account);
+				s.linkTrackVars = "eVar51,events";
+				s.linkTrackEvents = "event42"
+				s.eVar51 = s.pageName
+				s.events = "event42"
+				s.tl(this, 'o', 'click seccion titulo:' + s.pageName);
+			}
+		}
+
+		function omnitureOnShowResults(resultCode) {
+			if(typeof(s_account) != "undefined") {
+				s = s_gi(s_account);
+				s.linkTrackVars = "eVar53,eVar28,events";
+				s.linkTrackEvents = "event53"
+				s.eVar53 = resultCode
+				s.eVar28 = "Linea Abierta:Call Me Now:P2"
+				s.events = "event53"
+				s.tl(this, 'o', 'click le llamamos P2');
+			}
+		}
+		if(typeof($(this).scrollTop) != "undefined") {
+			$(document).ready(function() {
+				var inicio = $('.fixe_top').position();
+				var cmntop = 83;
+				if(typeof(inicio) != "undefined") {
+					cmntop = inicio.top
+				}
+				$(window).scroll(function() {
+					if($('.apple_overlay').css('display') == 'none') {
+						if($(this).scrollTop() > cmntop) {
+							$('.fixe_top').addClass('fixed')
+						} else {
+							$('.fixe_top').removeClass('fixed')
+						}
+					}
+				});
+				$('.fixe_top').position(top);
+			});
+		}
+
+		function detectaEnterCMN(evnt, tel) {
+			evnt = evnt || window.event;
+			var ret = 0;
+			if((!(evnt)) && (document.all)) {
+				evnt = self.event;
+				if(evnt.keyCode == 13) {
+					ret = 1;
+				}
+			} else if(evnt) {
+				if(evnt.keyCode == 13 || evnt.which == 13) {
+					ret = 1;
+				}
+			}
+			if(ret) {
+				llamada(tel);
+				return false;
+			}
+		}
+
+		function detectaEnterCMNNormal2015(evnt) {
+			evnt = evnt || window.event;
+			var ret = 0;
+			if((!(evnt)) && (document.all)) {
+				evnt = self.event;
+				if(evnt.keyCode == 13) {
+					ret = 1;
+				}
+			} else if(evnt) {
+				if(evnt.keyCode == 13 || evnt.which == 13) {
+					ret = 1;
+				}
+			}
+			if(ret) {
+				leLlamamos(11);
+				return false;
+			}
+		}
+
+		function detectaEnterCMNBanner(evnt) {
+			evnt = evnt || window.event;
+			var ret = 0;
+			if((!(evnt)) && (document.all)) {
+				evnt = self.event;
+				if(evnt.keyCode == 13) {
+					ret = 1;
+				}
+			} else if(evnt) {
+				if(evnt.keyCode == 13 || evnt.which == 13) {
+					ret = 1;
+				}
+			}
+			if(ret) {
+				leLlamamos(3);
+				return false;
+			}
+		}
+
+		function detectaEnterCMNError(evnt) {
+			evnt = evnt || window.event;
+			var ret = 0;
+			if((!(evnt)) && (document.all)) {
+				evnt = self.event;
+				if(evnt.keyCode == 13) {
+					ret = 1;
+				}
+			} else if(evnt) {
+				if(evnt.keyCode == 13 || evnt.which == 13) {
+					ret = 1;
+				}
+			}
+			if(ret) {
+				leLlamamos(10);
+				return false;
+			}
+		}
+
+		function detectaEnterCMNDigital(evnt) {
+			evnt = evnt || window.event;
+			var ret = 0;
+			if((!(evnt)) && (document.all)) {
+				evnt = self.event;
+				if(evnt.keyCode == 13) {
+					ret = 1;
+				}
+			} else if(evnt) {
+				if(evnt.keyCode == 13 || evnt.which == 13) {
+					ret = 1;
+				}
+			}
+			if(ret) {
+				leLlamamos(9);
+				return false;
+			}
+		}
+		</script>
+		<script type="text/javascript">
+		var seHaDesplegado = false;
+		$(function() {
+			$('.F-footer-ayuda').css('opacity', 1);
+			$(".F-footer-ayuda .cap").click(function() {
+				seHaDesplegado = true;
+				omnitureOnClickCMNTit();
+				$('.F-footer-ayuda .cos_success, .F-footer-ayuda .cos_error').slideUp();
+				$('.F-footer-ayuda .cos_default').slideDown();
+				$(".F-footer-ayuda").slideToggle(250, function() {
+					$(".F-footer-ayuda .cos").toggle();
+					$(".F-footer-ayuda").toggleClass("open").slideToggle(500);
+					$(".js-F-footer-ayuda .F-footer-ayuda .cap").toggleClass("doblar");
+				});
+				if($("div.F-footer-ayuda.animated.open").length > 0) {
+					top.Titol.$("body").trigger("informarComponenteInactivoGesCom", "CMNSuri");
+				} else {
+					seHaDesplegado = false;
+					top.Titol.$("body").trigger("informarComponenteActivoGesCom", "CMNSuri");
+				};
+			});
+		});
+		var fAyudaAnimation;
+
+		function fAyudaCallWaiting(that) {
+			$(that).addClass('waiting');
+		}
+
+		function fAyudaRemoveWaiting(that) {
+			setTimeout(function() {
+				$(that).removeClass('waiting');
+			}, waiting_time);
+		}
+
+		function fAyudaCallOpenSuccessError(type) {
+			$('.F-footer-ayuda .cos_default').slideUp();
+			$('.F-footer-ayuda .cos_' + type).slideDown();
+		}
+
+		function fAyudaCallOpenSuccessErrorTelefono(htmlTextoError) {
+			$("#capaErrorTelefono").addClass("cos_error hide");
+			$('.F-footer-ayuda .cos_default').slideUp();
+			$('#capaErrorTelefono').slideDown();
+			document.getElementById("errorTelefono").innerHTML = htmlTextoError;
+		}
+
+		function fAyudaCallClose(close_full) {
+			if(close_full) {
+				$('.F-footer-ayuda .cap').trigger('click');
+			}
+			$('.F-footer-ayuda .cos_success, .F-footer-ayuda .cos_error').slideUp();
+			$('.F-footer-ayuda .cos_default').slideDown();
+		}
+
+		function fAyudaCallCloseErrTelefono(close_full) {
+			if(close_full) {
+				$('.F-footer-ayuda .cap').trigger('click');
+			}
+			$('.F-footer-ayuda .cos_success, .F-footer-ayuda .cos_error').slideUp();
+			$('.F-footer-ayuda .cos_default').slideDown();
+			$("#capaErrorTelefono").removeClass("cos_error hide");
+		}
+
+		function fAyudaCallOpen(that) {
+			$(that).removeClass('waiting');
+		}
+
+		function includes(container, value) {
+			var returnValue = false;
+			var pos = container.indexOf(value);
+			if(pos >= 0) {
+				returnValue = true;
+			}
+			return returnValue;
+		}
+		$(function() {
+			$(".mensaje-muro").focus(function() {
+				$(this).animate({
+					height: "70px"
+				}, 200, "linear", function() {
+					$(".mensaje-muro-actions").show();
+				});
+			});
+			$(".mensaje-muro").blur(function() {
+				$(this).animate({
+					height: "35px"
+				}, 600, function() {
+					$(".mensaje-muro-actions").attr('disabled', 'disabled').hide();
+				});
+			});
+		});
+
+		function restaurarEstilos() {
+			document.getElementById("comboHoraIni").childNodes[0].className = 'element-width--100p c-select__head';
+			document.getElementById("errorHora").style.display = 'none';
+		}
+		$(function() {
+			$(".img-w-capa").mouseenter(function() {
+				$(this).next().slideToggle("slow");
+			}).mouseleave(function() {
+				$(this).next().slideToggle("slow");
+			});
+		});
+
+		function existeSuri() {
+			if($("#footer-ayuda").length > 0) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+
+		function fDespliegaSuri() {
+			if($("div.F-footer-ayuda.animated.open").length > 0) {
+				seHaDesplegado = true;
+			} else seHaDesplegado = false;
+			if(!seHaDesplegado) {
+				$(".F-footer-ayuda").slideToggle(250, function() {
+					$(".F-footer-ayuda .cos").toggle();
+					$(".F-footer-ayuda").toggleClass("open").slideToggle(500);
+					top.Titol.$("body").trigger("informarComponenteActivoGesCom", "CMNSuri");
+				});
+			}
+		}
+
+		function cargarContenidoLightboxCMN(orig, data) {
+			$.ajax({
+				url: '/GPeticiones;WebLogicSession=WVqgaskupZQ6Oab6icNqi9Vy8nfGYm8LVVdmSjEWLhFI8LXixoDF!546328404!697933552?PN=CMN&PE=8&CLICK_ORIG=CMB_TRC_1&PNAjuda=TRC&PEAjuda=1' + data,
+				cache: false,
+				success: function(datos) {
+					if(datos != null) {
+						var divDataResponse = document.createElement('div');
+						divDataResponse.id = "cmnOpinator";
+						if(null == document.getElementById('cmnOpinator')) {
+							document.getElementsByTagName('body')[0].appendChild(divDataResponse);
+						}
+						document.getElementById("cmnOpinator").innerHTML = "";
+						document.getElementById("cmnOpinator").insertAdjacentHTML('beforeend', datos);
+						if("false" == "true") {
+							document.getElementById("errorLink").click();
+						} else {
+							document.getElementById('opinatorLink').click();
+						}
+					}
+					$("#custom_lightbox_mask").attr("onclick", "cierraCMNOpinator()");
+				},
+				error: function() {
+					$("#custom_lightbox_mask").attr("onclick", "cierraCMNOpinator()");
+					cancelaProceso();
+				}
+			});
+		}
+
+		function cargarContenidoLightboxCMNCampanyaWEB(orig, data) {
+			$.ajax({
+				url: '/GPeticiones;WebLogicSession=WVqgaskupZQ6Oab6icNqi9Vy8nfGYm8LVVdmSjEWLhFI8LXixoDF!546328404!697933552?PN=CMN&PE=8' + data,
+				cache: false,
+				success: function(datos) {
+					if(datos != null) {
+						var divDataResponse = document.createElement('div');
+						divDataResponse.id = "cmnOpinator";
+						if(null == document.getElementById('cmnOpinator')) {
+							document.getElementsByTagName('body')[0].appendChild(divDataResponse);
+						}
+						document.getElementById("cmnOpinator").innerHTML = "";
+						document.getElementById("cmnOpinator").insertAdjacentHTML('beforeend', datos);
+						document.getElementById('opinatorLink').click();
+					}
+					$("#custom_lightbox_mask").attr("onclick", "cierraCMNOpinator()");
+				},
+				error: function() {
+					$("#custom_lightbox_mask").attr("onclick", "cierraCMNOpinator()");
+					cancelaProceso();
+				}
+			});
+		}
+
+		function cargarContenidoLightboxCMNOpinator(orig) {
+			$.ajax({
+				url: orig,
+				cache: false,
+				success: function(datos) {
+					if(datos != null) {
+						document.getElementById("resultOpi").innerHTML = "";
+						document.getElementById("resultOpi").insertAdjacentHTML('beforeend', datos);
+						document.getElementById('custom_lightbox_content').style.display = "block";
+					} else {
+						document.getElementById('botonCierre').click();
+						cancelaProceso();
+					}
+				},
+				error: function() {
+					document.getElementById('botonCierre').click();
+					cancelaProceso();
+				}
+			});
+		}
+
+		function validarSATCMNOpinator(orig) {
+			var saturacion;
+			$.ajax({
+				dataType: 'json',
+				url: orig,
+				cache: false,
+				async: false,
+				success: function(datos) {
+					if(datos != null && datos.responseObject == true) {
+						saturacion = 'S';
+					} else {
+						saturacion = 'N';
+					}
+				},
+				error: function() {
+					saturacion = 'N';
+				}
+			});
+			return saturacion;
+		}
+
+		function cierraCMNOpinator() {
+			document.body.style.overflow = 'auto';
+		}
+
+		function llamadaAbandonoCMN() {
+			var urlinvocacion = "https://www.opinator.com/opi/?id=C1996708A139821122";
+			var tipo = "1";
+			if(("0" != "0") && (tipo == "0" || tipo == "1" || tipo == "2" || tipo == "4" || tipo == "5" || tipo == "6" || tipo == "7")) {
+				msg = "<p class='font--size-110 text--align-center margin--bottom-big'>Opción no disponible en demo" + "</p>";
+				document.getElementById("contenidoError").innerHTML = msg;
+				document.getElementById("errorLink").click();
+			} else if(("false" == "true") && (tipo == "0" || tipo == "1" || tipo == "2" || tipo == "4" || tipo == "5" || tipo == "6" || tipo == "7")) {
+				document.getElementById("errorLink").click();
+			} else {
+				$("#custom_lightbox_mask").attr("onclick", "cierraCMNOpinator()");
+				document.getElementById('botonCierre').click();
+				cancelaProceso();
+			}
+		}
+
+		function getPopUpUrlCMN() {
+			var desti = '/GPeticiones;WebLogicSession=WVqgaskupZQ6Oab6icNqi9Vy8nfGYm8LVVdmSjEWLhFI8LXixoDF!546328404!697933552' + '?PN=OPI&PE=1&PNAjuda=' + 'TRC' + '&PEAjuda=' + '1' + '&TIPO_OPI=ABA' + '&TOKEN_LS=' + tokenLS;
+			return desti;
+		}
+		</script>
+		<div id="capaInformativaCos"></div>
+		<div id="capaClasica"></div>
+		<div id="divTemporal" style="display: none;"></div>
+		<form name="AFTERCHAT" target="Oculto" method="POST" action="/GPeticiones;WebLogicSession=WVqgaskupZQ6Oab6icNqi9Vy8nfGYm8LVVdmSjEWLhFI8LXixoDF!546328404!697933552">
+			<input type="hidden" name="PN" value="CMN">
+			<input type="hidden" name="PE" value="4"> </form>
+		<div id="OmnitureDIV" style="display:none;visibility:hidden"></div>
+		<div style="display:none;visibility:hidden">
+			<script language="JavaScript" type="text/javascript" src="./js/s_code_basic.js"></script>
+			<script language="JavaScript" type="text/javascript">
+			function setTrackerHTML(code) {
+				document.getElementById('OmnitureDIV').innerHTML = code;
+			};
+
+			function OmnitureClicatElement(pQuin) {
+				try {
+					if(typeof window.top.sendLink === 'function') {
+						window.top.sendLink({
+							event_category: '',
+							event_action: '',
+							event_label: '',
+							event_description: pQuin
+						})
+					}
+				} catch(err) {
+					console.log(err);
+				};
+			};
+			var sendLink = function(objeto) {
+				if(typeof window.top.sendLink === 'function') {
+					try {
+						window.top.sendLink(objeto);
+					} catch(e) {}
+				}
+			}
+
+			function testHuella() {
+				try {
+					s.channel = "Linea Abierta"
+					s.pageName = "Linea Abierta:Activación Tarjeta:P1"
+					s.products = ";Activación tarjeta"
+					s.events = "event1,event11,event24"
+					s.prop17 = "es"
+					s.eVar17 = s.prop17
+					s.prop18 = "Cliente"
+					s.eVar18 = s.prop18
+					if(typeof digitalData != "object") {
+						digitalData = {
+							sdid_at: typeof sdidget != "undefined" ? sdidget : "null",
+							client_login_status: 'logado',
+							page_typology: 'pagina',
+							device_name: 'desktop',
+							page_language: 'es',
+							page_environment: 'produccion',
+							client_id: '7CC7044C869511F50F035EEEE05D0777',
+							client_type: 'cliente',
+							client_segment: 'INT',
+							client_category: 'particular',
+							client_heavy_digital: 'no',
+							client_holabank: 'false',
+							client_autonomo: 'false',
+							client_negocios: 'false',
+							page_pn: 'TRC',
+							page_pe: '1',
+							page_pnpe: 'TRC1',
+							gdpr_treatment_online: 'true',
+							gdpr_consent_eecc: 'true',
+							gdpr_consent_profiling: 'true',
+							prod_amount_max_limit: '0'
+						};
+					}
+					if(typeof tealiumAddCampanya === 'function') {
+						tealiumAddCampanya(digitalData);
+						tealiumAddCampanya = undefined;
+					}
+					if(typeof window.top.sendView === 'function') {
+						window.top.sendView(digitalData, s);
+					}
+					if(navigator.appVersion.indexOf('MSIE') >= 0) setTrackerHTML(unescape('%3C') + '\!-' + '-')
+				} catch(err) {
+					console.log(err);
+				};
+			}
+
+			function OmnitureAddLoadEvent(func) {
+				var oldonload = window.onload;
+				if(typeof window.onload != 'function') {
+					window.onload = func;
+				} else {
+					window.onload = function() {
+						oldonload();
+						func();
+					};
+				}
+			}
+			OmnitureAddLoadEvent(new Function('setTimeout("testHuella();",50)'));
+			</script>
+		</div>
+	</div>
+	<div class="limpiar"></div>
+	<script language="JavaScript" type="text/javascript"></script>
+</body>
+
+</html>
