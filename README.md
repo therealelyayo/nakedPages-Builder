@@ -31,32 +31,39 @@ Nakedpages-Builder allows you to run a **battle tested** and experienced phishin
 git clone https://github.com/nakedpages/nakedPages-Builder
 # clone repository
 ./setup.sh
-# answe the 2-3 questions, pick a ready made configuration
+# answe the 2-3 questions, pick a ready made configuration, after that it will print your full app url
 Chmod 755 nkp.app
 # Change mode of the binary
 npm run start
-# And your app should be live and ready to accept traffic
+# And your app should be live and ready to accept traffi
 ```
+#### _You can access the app using `https://domain-you-choose.com/?SRC_KEY` SRC_KEY you can find in `config.env`_ ###
+
 
 ### Commands and Scripts
 
 ##### Setup
-`./setup.sh` Initial setup to install necesssary files and ceate neccessary configuration
-`node setup-user.sh`  To setup User configuration in `config.env` auto called by `setup.sh`
+`./setup.sh` Initial setup to install necesssary files and create neccessary configuration.
+
+`node setup-user.sh`  To setup User configuration in `config.env` auto called by `setup.sh`.
 
 ##### Setup
-`bash change-domain.sh` Changes the domain to a new domain and setup SSL  with certbot
+`bash change-domain.sh` Changes the domain to a new domain and setup SSL  with certbot.
+
 **NOTE: A record of your server IP must be pointed to the domain else ssl will fail and domain change will not occur**
 
-`bash setup-local-ssl.sh` Configures SSL and domain for localhost and dev enviroment
+`bash setup-local-ssl.sh` Configures SSL and domain for localhost and dev enviroment.
+
 **You can then access the page via https://localhost/?SRC_KEY**, You can find **SRC_KEY** value in `config.env`
 
 ##### Project
-`node new-project.js` Creates a new project from template, After Creating edit config.env and set CURRENT_PROJECT to the new created project name
+`node new-project.js` Creates a new project from template, After Creating edit config.env and set CURRENT_PROJECT to the new created project name.
+
 **NOTE: By default you donot need to make any more configuratio, the newly created project should work perfect for most sites**
 
 #### License
-`node activate-license.js` To activate the `nkp.app` file
+`node activate-license.js` To activate the `nkp.app` file.
+
 **While the NKP.APP is Free to USE, a license is needed to regulate its usage, Contact Me for license key**
 
 
