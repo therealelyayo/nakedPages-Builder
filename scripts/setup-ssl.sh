@@ -2,7 +2,7 @@
 
 echo "Setting Up SSL"
 
-if [ $# -ne 0 ]
+if [ $# -eq 0 ]
 then
   echo "Could not find domain, exiting"
   exit 1

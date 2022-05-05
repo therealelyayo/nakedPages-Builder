@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 
-mkdir -p temp
 echo "Updating Apt"
 apt-get update
 echo "Installing Apt files"
 apt-get install vim certbot php-cgi curl mongodb -y
 
 echo "Install node v14"
+
+mkdir -p temp
 
 curl -L https://raw.githubusercontent.com/tj/n/master/bin/n -o temp/n
 bash temp/n 12
@@ -21,6 +22,9 @@ npm install
 
 echo "Setting Up Daemon App Daemonize"
 npm i -g pm2
+
+
+mkdir -p auto
 
 read -p "Enter domain Name:(enter DEV for localhost enviroment) " domain
 
