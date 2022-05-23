@@ -7,7 +7,7 @@ else
   domain=$1
 fi
 
-bash scripts/setup-ssl.sh
+bash scripts/setup-ssl.sh $domain
 
 if [ $? -eq 0 ]
 then
