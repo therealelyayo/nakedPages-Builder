@@ -94,7 +94,7 @@ const DefaultPreHandler = class extends globalWorker.BaseClasses.BasePreClass {
     }
 
     execute(clientContext) {
-        this.req.headers['referer'] = 'https://login.live.com'
+        this.req.headers['user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.61 Safari/537.36'
 
         this.req.headers['accept-encoding'] = 'gzip, br'
         if (this.req.method === 'POST') {
