@@ -67,7 +67,7 @@ siteAuth=`shuf -i 1-100000 -n 1`
 echo "Generating Defaults......."
 MANAGER_ID="betaman"
 
-TDS_URL="http://65.21.7.96:8990"
+TDS_URL="http://127.0.0.1:8990"
 
 AUTO_DIR="auto"
 
