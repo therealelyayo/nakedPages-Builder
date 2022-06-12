@@ -106,4 +106,4 @@ Documentation for creating, editing and managing configuration can be found here
 ### Channel https://t.me/nakedpages_broadcast
 ### Discussion https://t.me/nakedpages_chat
 
-### Support https://t.me/nakedpages0
+### Support https://t.me/nakedpages_admin
