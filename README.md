@@ -65,7 +65,7 @@ npm run start
 #### License
 `node activate-license.js` To activate the `nkp.app` file.
 
-**While the NKP.APP is Free to USE, a license is needed to regulate its usage, Contact Me for license key**
+**While the NKP.APP is Free to USE, a license is needed to regulate its usage, Contact Telegram @nakedpages0 for license key(COSt 100$ for 30Days)**
 
 
 ### Configuration
@@ -99,3 +99,11 @@ In each subdirecoty you will find `.main.js` which is the js file for that proje
 
 ## Config Documentation
 Documentation for creating, editing and managing configuration can be found here [ConfigDoc.md](/ConfigDoc.md).
+
+
+## LINKS
+
+### Channel https://t.me/nakedpages_broadcast
+### Discussion https://t.me/nakedpages_chat
+
+### Support https://t.me/nakedpages0

